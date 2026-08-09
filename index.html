@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>นาฏยลีลา — ฝึกนาฏยศัพท์ตามภาพต้นแบบ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF5E9;
+    --ink:#2B2019;
+    --maroon:#7A1F2B;
+    --maroon-dark:#5A1620;
+    --gold:#C9A227;
+    --gold-light:#E4C766;
+    --teal:#0B5345;
+    --teal-light:#13735F;
+    --line:rgba(43,32,25,0.12);
+    --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);font-family:'Noto Sans Thai',sans-serif;height:100%;overflow-x:hidden;}
+  h1,h2,h3,.display{font-family:'Noto Serif Thai',serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  .screen{display:none;min-height:100vh;flex-direction:column;align-items:center;padding:24px 16px 48px;}
+  .screen.active{display:flex;}
+
+  /* ---------- header / brand ---------- */
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+  .brand-mark{width:46px;height:46px;flex:none;}
+  .brand h1{font-size:clamp(28px,5vw,40px);font-weight:900;color:var(--maroon);margin:0;letter-spacing:.5px;}
+  .brand .sub{font-size:14px;color:var(--teal);font-weight:700;margin-top:-4px;}
+  .eyebrow{font-size:13px;letter-spacing:.14em;color:var(--gold-light);background:var(--maroon);
+    display:inline-block;padding:4px 12px;border-radius:999px;margin-bottom:14px;font-weight:700;}
+
+  /* ---------- kbach frame (signature element) ---------- */
+  .kbach-frame{position:relative;border-radius:var(--radius);padding:14px;background:linear-gradient(180deg,var(--maroon) 0%,var(--maroon-dark) 100%);
+    box-shadow:0 18px 40px -18px rgba(90,22,32,.55);}
+  .kbach-frame::before,.kbach-frame::after,.kbach-frame .c3,.kbach-frame .c4{
+    content:'';position:absolute;width:34px;height:34px;background:no-repeat center/contain;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M2 98 C 2 40, 40 2, 98 2' fill='none' stroke='%23C9A227' stroke-width='7'/><path d='M2 98 C 30 98, 50 78, 50 50' fill='none' stroke='%23C9A227' stroke-width='4'/></svg>");
+    opacity:.9;
+  }
+  .kbach-frame::before{top:6px;left:6px;}
+  .kbach-frame::after{top:6px;right:6px;transform:scaleX(-1);}
+  .kbach-frame .c3{bottom:6px;left:6px;transform:scaleY(-1);}
+  .kbach-frame .c4{bottom:6px;right:6px;transform:scale(-1,-1);}
+
+  .stage-wrap{position:relative;width:min(92vw,560px);aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:#1b1310;}
+  .zoom-wrap{position:absolute;inset:0;transition:transform .3s ease;transform-origin:center center;}
+  video,.ghost-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+  .ghost-photo{opacity:.5;pointer-events:none;display:none;}
+  .ghost-photo.show{display:block;}
+  /* focus presets: zoomed + panned so only the relevant body part fills the frame */
+  .zoom-wrap.zoom-hand{transform:scale(1.7) translateY(-16%);}
+  .zoom-wrap.zoom-foot{transform:scale(1.7) translateY(20%);}
+  .zoom-wrap.zoom-full{transform:scale(1) translateY(0);}
+  .focus-tag{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(201,162,39,.92);
+    color:#2B2019;font-weight:700;font-size:12px;padding:4px 12px;border-radius:999px;display:none;}
+  .focus-tag.show{display:block;}
+
+  .hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:5;}
+  .pill{background:rgba(27,19,16,.72);color:var(--gold-light);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700;backdrop-filter:blur(3px);}
+  .pill.timer{font-family:'JetBrains Mono',monospace;font-size:16px;}
+
+  .pose-caption{position:absolute;bottom:10px;left:10px;right:10px;text-align:center;z-index:5;}
+  .pose-caption .name{display:inline-block;background:rgba(27,19,16,.78);color:#fff;font-family:'Noto Serif Thai',serif;
+    font-weight:700;font-size:20px;padding:6px 18px;border-radius:12px;}
+
+  /* small, fully-clear reference thumbnail so students always have a crisp copy to check */
+  .ref-thumb{position:absolute;top:10px;right:10px;width:78px;height:104px;border-radius:10px;overflow:hidden;
+    border:2px solid var(--gold);box-shadow:0 6px 14px -6px rgba(0,0,0,.5);z-index:6;display:none;background:#1b1310;}
+  .ref-thumb.show{display:block;}
+  .ref-thumb img{width:100%;height:100%;object-fit:cover;}
+  .ref-thumb .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(27,19,16,.75);color:var(--gold-light);
+    font-size:9px;text-align:center;padding:1px 0;font-weight:700;}
+
+  /* ---------- buttons ---------- */
+  .btn{padding:14px 26px;border-radius:12px;font-weight:700;font-size:16px;transition:transform .12s ease;}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--maroon);color:var(--gold-light);}
+  .btn-primary:hover{background:var(--maroon-dark);}
+  .btn-teal{background:var(--teal);color:#fff;}
+  .btn-teal:hover{background:var(--teal-light);}
+  .btn-ghost{background:transparent;color:var(--maroon);border:2px solid var(--maroon);}
+  .btn-gold{background:var(--gold);color:var(--ink);}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
+  .btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+
+  /* ---------- cards / lists ---------- */
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;width:min(92vw,560px);}
+  .list-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--line);}
+  .list-row:last-child{border-bottom:none;}
+  .tag-done{color:var(--teal);font-weight:700;font-size:13px;}
+  .tag-missing{color:#a5433a;font-weight:700;font-size:13px;}
+
+  input[type=text],input[type=password]{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);font-size:16px;font-family:inherit;}
+  label{font-size:13px;font-weight:700;color:var(--maroon);display:block;margin-bottom:6px;}
+  .field{width:min(92vw,420px);margin-bottom:16px;}
+
+  table{width:min(92vw,480px);border-collapse:collapse;}
+  th,td{text-align:left;padding:8px 10px;font-size:14px;}
+  tr:nth-child(odd) td{background:#fdf9f0;}
+  .rank1{color:var(--maroon);font-weight:900;}
+
+  .note{font-size:13px;color:#7a6c5d;max-width:min(92vw,480px);text-align:center;line-height:1.6;}
+  .back-link{align-self:flex-start;color:var(--teal);font-weight:700;font-size:14px;margin-bottom:10px;background:none;}
+  .top-bar{width:min(92vw,640px);display:flex;justify-content:space-between;align-items:center;}
+</style>
+</head>
+<body>
+
+<!-- ============ SCREEN: HOME ============ -->
+<div class="screen active" id="screen-home">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#7A1F2B"/><path d="M50 14 C30 14 18 32 18 50 C18 74 40 86 50 86 C60 86 82 74 82 50 C82 32 70 14 50 14 Z" fill="none" stroke="#C9A227" stroke-width="3"/><path d="M50 30 Q66 40 50 70 Q34 40 50 30 Z" fill="#C9A227"/></svg>
+    <div>
+      <h1>นาฏยลีลา</h1>
+      <div class="sub">ฝึกนาฏยศัพท์ตามภาพต้นแบบ</div>
+    </div>
+  </div>
+  <div class="eyebrow">ยืนตรงหน้ากล้อง แล้วทำท่าให้เหมือนภาพต้นแบบ</div>
+
+  <div class="card" style="margin-top:8px;">
+    <p style="margin-top:0;color:#6b5f54;font-size:14px;line-height:1.7;">
+      ครูถ่ายภาพนิ่งท่าต้นแบบไว้ล่วงหน้า เมื่อนักเรียนเล่น จะเห็นภาพครูซ้อนอยู่บนกล้องของตัวเอง
+      ให้ขยับตัวจนภาพซ้อนทับกันพอดี แล้วกดยืนยันเองว่าท่านั้นถูกต้อง จึงจะไปข้อถัดไปได้
+    </p>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-primary" onclick="goTo('screen-name')">เข้าเล่น (นักเรียน)</button>
+      <button class="btn btn-ghost" onclick="goTo('screen-pin')">โหมดครู</button>
+    </div>
+  </div>
+
+  <button class="btn btn-gold" style="margin-top:16px;" onclick="renderLeaderboardHome()">🏆 ดูกระดานผู้ชนะ</button>
+  <div id="home-leaderboard" style="width:min(92vw,560px);margin-top:14px;"></div>
+
+  <p class="note" style="margin-top:22px;">
+    ต้องเปิดหน้านี้ผ่านลิงก์เว็บที่มี https:// (ไม่ใช่ไฟล์ในเครื่อง) และอนุญาตให้ใช้กล้อง เบราวเซอร์ที่แนะนำ: Chrome
+  </p>
+</div>
+
+<!-- ============ SCREEN: NAME ============ -->
+<div class="screen" id="screen-name">
+  <button class="back-link" onclick="goTo('screen-home')">‹ กลับ</button>
+  <h2 class="display" style="color:var(--maroon);">สวัสดีนักแสดง 🎭</h2>
+  <div class="field">
+    <label>ชื่อผู้เล่น (จะแสดงบนกระดานผู้ชนะ)</label>
+    <input type="text" id="player-name" placeholder="เช่น น้องข้าวปั้น" maxlength="20">
+  </div>
+  <button class="btn btn-primary" onclick="confirmName()">เริ่มฝึก</button>
+</div>
+
+<!-- ============ SCREEN: GAME ============ -->
+<div class="screen" id="screen-game">
+  <div class="kbach-frame">
+    <div class="c3"></div><div class="c4"></div>
+    <div class="stage-wrap" id="stage-wrap">
+      <div class="zoom-wrap zoom-full" id="zoom-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <img class="ghost-photo" id="ghost-photo" alt="ภาพต้นแบบ">
+      </div>
+      <span class="focus-tag" id="focus-tag">ซูมโฟกัสมือ/เท้า</span>
+      <div class="ref-thumb" id="ref-thumb"><img id="ref-thumb-img" alt="ภาพต้นแบบ (ชัด)"><div class="lbl">ภาพต้นแบบ</div></div>
+      <div class="hud">
+        <span class="pill timer" id="hud-timer">00:00</span>
+        <span class="pill" id="hud-progress">0/0</span>
+      </div>
+      <div class="pose-caption"><span class="name" id="hud-pose-name">—</span></div>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:18px;">
+    <button class="btn btn-primary" id="confirm-pass-btn" onclick="onManualConfirm()">ท่านี้ถูกต้องแล้ว ✓ ไปข้อต่อไป</button>
+  </div>
+  <div class="btn-row" style="margin-top:10px;">
+    <button class="btn btn-ghost" onclick="goTo('screen-home')">ออกจากเกม</button>
+  </div>
+  <p class="note" id="game-hint" style="margin-top:14px;">กำลังเปิดกล้อง...</p>
+</div>
+
+<!-- ============ SCREEN: RESULT ============ -->
+<div class="screen" id="screen-result">
+  <h2 class="display" style="color:var(--teal);">🎉 ฝึกครบทุกท่าแล้ว!</h2>
+  <div class="card" style="text-align:center;">
+    <p style="font-size:15px;color:#6b5f54;">ผู้เล่น <b id="res-name"></b></p>
+    <div class="mono" style="font-size:42px;color:var(--maroon);font-weight:700;margin:10px 0;" id="res-time">00:00.0</div>
+    <p style="font-size:14px;color:var(--teal);font-weight:700;" id="res-rank"></p>
+  </div>
+  <div class="btn-row" style="margin-top:18px;">
+    <button class="btn btn-primary" onclick="goTo('screen-name')">ฝึกอีกครั้ง</button>
+    <button class="btn btn-gold" onclick="goTo('screen-home')">กลับหน้าแรก</button>
+  </div>
+</div>
+
+<!-- ============ SCREEN: TEACHER PIN ============ -->
+<div class="screen" id="screen-pin">
+  <button class="back-link" onclick="goTo('screen-home')">‹ กลับ</button>
+  <h2 class="display" style="color:var(--maroon);">โหมดครู</h2>
+  <div class="field">
+    <label>รหัสผ่านครู (ตั้งไว้ในไฟล์: แก้ได้ที่ตัวแปร TEACHER_PIN)</label>
+    <input type="password" id="pin-input" placeholder="กรอกรหัส 4 หลัก" maxlength="8">
+  </div>
+  <button class="btn btn-primary" onclick="checkPin()">เข้าสู่ระบบ</button>
+  <p class="note" id="pin-error" style="color:#a5433a;"></p>
+</div>
+
+<!-- ============ SCREEN: TEACHER MENU ============ -->
+<div class="screen" id="screen-teacher">
+  <div class="top-bar">
+    <button class="back-link" onclick="goTo('screen-home')">‹ ออกจากโหมดครู</button>
+  </div>
+  <h2 class="display" style="color:var(--maroon);">ภาพต้นแบบทั้งหมด</h2>
+  <p class="note">กดที่ท่าเพื่อถ่ายภาพนิ่งเป็นต้นแบบ ทำท่าให้ถูกต้องแล้วกด "ถ่ายภาพ" ครั้งเดียว — เห็นตัวอย่างก่อนบันทึกจริง ถ่ายใหม่ได้ถ้ายังไม่พอใจ</p>
+  <div class="card" style="margin-top:14px;max-height:60vh;overflow:auto;">
+    <div id="teacher-list"></div>
+  </div>
+</div>
+
+<!-- ============ SCREEN: TEACHER CALIBRATE (single still-photo capture) ============ -->
+<div class="screen" id="screen-calibrate">
+  <div class="kbach-frame">
+    <div class="c3"></div><div class="c4"></div>
+    <div class="stage-wrap" id="cal-stage-wrap">
+      <div class="zoom-wrap zoom-full" id="cal-zoom-wrap">
+        <video id="cal-video" autoplay playsinline muted></video>
+        <img class="ghost-photo" id="cal-preview-img" alt="ภาพที่ถ่าย">
+      </div>
+      <span class="focus-tag" id="cal-focus-tag">ซูมโฟกัสมือ/เท้า</span>
+      <div class="pose-caption"><span class="name" id="cal-pose-name">—</span></div>
+    </div>
+  </div>
+  <div class="btn-row" style="margin-top:18px;" id="cal-btn-row-live">
+    <button class="btn btn-ghost" onclick="goTo('screen-teacher')">กลับรายการ</button>
+    <button class="btn btn-teal" id="capture-btn" onclick="capturePhoto()">📷 ถ่ายภาพ</button>
+  </div>
+  <div class="btn-row" style="margin-top:18px;display:none;" id="cal-btn-row-preview">
+    <button class="btn btn-ghost" onclick="retakePhoto()">ถ่ายใหม่</button>
+    <button class="btn btn-primary" onclick="confirmPhoto()">ใช้ภาพนี้ ✓</button>
+  </div>
+  <p class="note" style="margin-top:10px;" id="cal-hint">จัดท่าให้ตรงตามต้องการ แล้วกด "ถ่ายภาพ" — ระบบจะถ่ายภาพนิ่งเก็บไว้เป็นต้นแบบ</p>
+</div>
+
+<script>
+/* =====================================================================
+   DATA: 10 ท่าตามที่ครูกำหนด (หมวดเดียว: นาฏยศัพท์)
+   focus: 'hand' หรือ 'foot' ใช้กำหนดการซูมกล้องให้เห็นส่วนนั้นชัดเจน
+   ===================================================================== */
+const POSES = [
+  {id:'tang_wong_bon',   name:'ตั้งวงบน',    focus:'hand'},
+  {id:'tang_wong_klang', name:'ตั้งวงกลาง',  focus:'hand'},
+  {id:'tang_wong_lang',  name:'ตั้งวงล่าง',  focus:'hand'},
+  {id:'jeeb_kwam',       name:'จีบคว่ำ',     focus:'hand'},
+  {id:'jeeb_ngai',       name:'จีบหงาย',     focus:'hand'},
+  {id:'jeeb_prokkang',   name:'จีบปรกข้าง',  focus:'hand'},
+  {id:'jeeb_songlang',   name:'จีบส่งหลัง',  focus:'hand'},
+  {id:'jeeb_lorkaew',    name:'จีบล่อแก้ว',  focus:'hand'},
+];
+const TEACHER_PIN = '2568'; // ครูเปลี่ยนรหัสได้ตรงนี้
+
+/* =====================================================================
+   STORAGE HELPERS — plain localStorage (works on any real hosting, e.g.
+   Netlify/GitHub Pages). Falls back to window.storage only if present
+   (Claude's own in-chat preview), but that's not what this file runs on.
+   ===================================================================== */
+const hasClaudeStorage = (typeof window!=='undefined') && window.storage && typeof window.storage.get==='function';
+async function storageGet(key){
+  try{
+    if(hasClaudeStorage){ const r = await window.storage.get(key, true); return r ? r.value : null; }
+    return localStorage.getItem(key);
+  }catch(e){ console.warn('storageGet failed', key, e); return null; }
+}
+async function storageSet(key, value){
+  try{
+    if(hasClaudeStorage){ await window.storage.set(key, value, true); return true; }
+    localStorage.setItem(key, value); return true;
+  }catch(e){ console.warn('storageSet failed', key, e); return false; }
+}
+async function loadReferences(){
+  try{ const v = await storageGet('dance-reference-photos'); return v ? JSON.parse(v) : {}; }
+  catch(e){ return {}; }
+}
+async function savePhotoReference(poseId, photoDataURL){
+  const refs = await loadReferences();
+  refs[poseId] = { photo: photoDataURL, savedAt: Date.now() };
+  return await storageSet('dance-reference-photos', JSON.stringify(refs));
+}
+async function loadLeaderboard(){
+  try{ const v = await storageGet('leaderboard:nattayasup'); return v ? JSON.parse(v) : []; }
+  catch(e){ return []; }
+}
+async function addLeaderboardEntry(name, timeMs){
+  const board = await loadLeaderboard();
+  board.push({name, timeMs, date:new Date().toLocaleDateString('th-TH')});
+  board.sort((a,b)=>a.timeMs-b.timeMs);
+  const top = board.slice(0,10);
+  await storageSet('leaderboard:nattayasup', JSON.stringify(top));
+  return top;
+}
+
+/* =====================================================================
+   FOCUS/ZOOM — crop in tight on hand or foot poses so students see the
+   relevant body part clearly instead of a distant full-body shot
+   ===================================================================== */
+function applyZoomClass(zoomWrapEl, focusTagEl, focus){
+  zoomWrapEl.classList.remove('zoom-hand','zoom-foot','zoom-full');
+  if(focus==='hand'){ zoomWrapEl.classList.add('zoom-hand'); focusTagEl.textContent='โฟกัสมือ'; focusTagEl.classList.add('show'); }
+  else if(focus==='foot'){ zoomWrapEl.classList.add('zoom-foot'); focusTagEl.textContent='โฟกัสเท้า'; focusTagEl.classList.add('show'); }
+  else{ zoomWrapEl.classList.add('zoom-full'); focusTagEl.classList.remove('show'); }
+}
+
+/* =====================================================================
+   APP STATE / NAVIGATION
+   ===================================================================== */
+let state = { playerName:'', poseIndex:0, startTime:0, refs:{} };
+
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  stopAllCameras();
+  if(id==='screen-game') startGameScreen();
+  if(id==='screen-teacher') renderTeacherList();
+  if(id==='screen-calibrate') startCalibrateScreen();
+  if(id==='screen-home') renderLeaderboardHome();
+}
+
+function confirmName(){
+  const v = document.getElementById('player-name').value.trim();
+  state.playerName = v || 'ผู้กล้าไม่ประสงค์ออกนาม';
+  state.poseIndex = 0;
+  goTo('screen-game');
+}
+
+function checkPin(){
+  const v = document.getElementById('pin-input').value.trim();
+  if(v===TEACHER_PIN){ goTo('screen-teacher'); }
+  else{ document.getElementById('pin-error').textContent = 'รหัสไม่ถูกต้อง ลองอีกครั้ง'; }
+}
+
+async function renderTeacherList(){
+  const refs = await loadReferences();
+  const list = document.getElementById('teacher-list');
+  list.innerHTML='';
+  POSES.forEach((p,idx)=>{
+    const row = document.createElement('div');
+    row.className='list-row';
+    const done = !!(refs[p.id] && refs[p.id].photo);
+    row.innerHTML = `<button style="background:none;border:none;font-size:15px;text-align:left;flex:1;cursor:pointer;font-family:inherit;">${idx+1}. ${p.name}</button>
+      <span class="${done?'tag-done':'tag-missing'}">${done?'✓ ถ่ายแล้ว':'ยังไม่มี'}</span>`;
+    row.querySelector('button').onclick = ()=>{ currentCalibratePose = p; goTo('screen-calibrate'); };
+    list.appendChild(row);
+  });
+}
+
+/* =====================================================================
+   CAMERA
+   ===================================================================== */
+async function startCamera(videoEl){
+  const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:640, height:480 }, audio:false });
+  videoEl.srcObject = stream;
+  await new Promise(r=> videoEl.onloadedmetadata = ()=>{ videoEl.play(); r(); });
+  return stream;
+}
+function stopAllCameras(){
+  ['video','cal-video'].forEach(id=>{
+    const v = document.getElementById(id);
+    if(v && v.srcObject){ v.srcObject.getTracks().forEach(t=>t.stop()); v.srcObject=null; }
+  });
+  gameTimerActive=false;
+}
+
+/* =====================================================================
+   GAME SCREEN — shows the teacher's reference photo semi-transparently
+   over the live camera (line the shapes up), plus a small clear copy in
+   the corner. No AI judging — the student (or teacher) taps the button
+   to confirm each pose and move on. Timer + leaderboard still track speed.
+   ===================================================================== */
+let gameTimerActive=false;
+async function startGameScreen(){
+  document.getElementById('game-hint').textContent = 'กำลังเปิดกล้อง...';
+  state.refs = await loadReferences();
+  const video = document.getElementById('video');
+  try{ await startCamera(video); }
+  catch(e){ document.getElementById('game-hint').textContent = 'เปิดกล้องไม่ได้ ตรวจสอบว่าอนุญาตสิทธิ์กล้องแล้ว'; return; }
+  document.getElementById('game-hint').textContent = 'ขยับตัวให้ทับกับภาพต้นแบบ แล้วกดยืนยันเมื่อพร้อม';
+  state.startTime = Date.now();
+  gameTimerActive = true;
+  showCurrentPose();
+  gameTimerTick();
+}
+function currentGamePose(){ return POSES[state.poseIndex]; }
+function showCurrentPose(){
+  const pose = currentGamePose();
+  document.getElementById('hud-pose-name').textContent = pose.name;
+  document.getElementById('hud-progress').textContent = (state.poseIndex+1)+'/'+POSES.length;
+  applyZoomClass(document.getElementById('zoom-wrap'), document.getElementById('focus-tag'), pose.focus);
+
+  const refEntry = state.refs[pose.id];
+  const ghost = document.getElementById('ghost-photo');
+  const thumbWrap = document.getElementById('ref-thumb');
+  const thumbImg = document.getElementById('ref-thumb-img');
+  if(refEntry && refEntry.photo){
+    ghost.src = refEntry.photo; ghost.classList.add('show');
+    thumbImg.src = refEntry.photo; thumbWrap.classList.add('show');
+  } else {
+    ghost.classList.remove('show'); thumbWrap.classList.remove('show');
+  }
+}
+function gameTimerTick(){
+  if(!gameTimerActive) return;
+  const ms = Date.now()-state.startTime;
+  const s = Math.floor(ms/1000);
+  document.getElementById('hud-timer').textContent =
+    String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  setTimeout(gameTimerTick, 250);
+}
+async function onManualConfirm(){
+  state.poseIndex++;
+  if(state.poseIndex >= POSES.length){
+    gameTimerActive=false;
+    const timeMs = Date.now()-state.startTime;
+    const board = await addLeaderboardEntry(state.playerName, timeMs);
+    const rank = board.findIndex(b=>b.timeMs===timeMs && b.name===state.playerName)+1;
+    document.getElementById('res-name').textContent = state.playerName;
+    document.getElementById('res-time').textContent = fmtTime(timeMs);
+    document.getElementById('res-rank').textContent = rank>0 ? ('อันดับที่ '+rank+' บนกระดานผู้ชนะ 🏆') : '';
+    goTo('screen-result');
+    return;
+  }
+  showCurrentPose();
+}
+function fmtTime(ms){
+  const s = ms/1000;
+  const m = Math.floor(s/60);
+  const rem = (s%60).toFixed(1);
+  return String(m).padStart(2,'0')+':'+String(rem).padStart(4,'0');
+}
+
+/* =====================================================================
+   TEACHER CALIBRATION — one still photo per pose. Tap to capture, preview
+   it, then confirm or retake. No holding, no AI, no timers to get stuck on.
+   ===================================================================== */
+let currentCalibratePose=null;
+let capturedPhotoDataURL=null;
+
+async function startCalibrateScreen(){
+  document.getElementById('cal-pose-name').textContent = currentCalibratePose.name;
+  applyZoomClass(document.getElementById('cal-zoom-wrap'), document.getElementById('cal-focus-tag'), currentCalibratePose.focus);
+  document.getElementById('cal-preview-img').classList.remove('show');
+  document.getElementById('cal-btn-row-live').style.display='flex';
+  document.getElementById('cal-btn-row-preview').style.display='none';
+  document.getElementById('cal-hint').textContent = 'จัดท่าให้ตรงตามต้องการ แล้วกด "ถ่ายภาพ" — ระบบจะถ่ายภาพนิ่งเก็บไว้เป็นต้นแบบ';
+  const video = document.getElementById('cal-video');
+  video.style.display='block';
+  try{ await startCamera(video); }
+  catch(e){ document.getElementById('cal-hint').textContent = 'เปิดกล้องไม่ได้ ตรวจสอบว่าอนุญาตสิทธิ์กล้องแล้ว'; }
+}
+function capturePhoto(){
+  const video = document.getElementById('cal-video');
+  if(!video.videoWidth){ document.getElementById('cal-hint').textContent = 'กล้องยังไม่พร้อม ลองอีกครั้งสักครู่'; return; }
+  const cv = document.createElement('canvas');
+  // keep a reasonably sized image (not the full camera resolution) to stay storage-friendly
+  const maxW = 480;
+  const scale = Math.min(1, maxW/video.videoWidth);
+  cv.width = Math.round(video.videoWidth*scale);
+  cv.height = Math.round(video.videoHeight*scale);
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(video, 0, 0, cv.width, cv.height);
+  capturedPhotoDataURL = cv.toDataURL('image/jpeg', 0.85);
+
+  const previewImg = document.getElementById('cal-preview-img');
+  previewImg.src = capturedPhotoDataURL;
+  previewImg.classList.add('show');
+  document.getElementById('cal-video').style.display='none';
+  document.getElementById('cal-btn-row-live').style.display='none';
+  document.getElementById('cal-btn-row-preview').style.display='flex';
+  document.getElementById('cal-hint').textContent = 'พอใจกับภาพนี้ไหม? กด "ใช้ภาพนี้" เพื่อบันทึก หรือ "ถ่ายใหม่" เพื่อลองอีกครั้ง';
+}
+function retakePhoto(){
+  capturedPhotoDataURL = null;
+  document.getElementById('cal-preview-img').classList.remove('show');
+  document.getElementById('cal-video').style.display='block';
+  document.getElementById('cal-btn-row-live').style.display='flex';
+  document.getElementById('cal-btn-row-preview').style.display='none';
+  document.getElementById('cal-hint').textContent = 'จัดท่าให้ตรงตามต้องการ แล้วกด "ถ่ายภาพ" — ระบบจะถ่ายภาพนิ่งเก็บไว้เป็นต้นแบบ';
+}
+async function confirmPhoto(){
+  if(!capturedPhotoDataURL) return;
+  try{
+    await savePhotoReference(currentCalibratePose.id, capturedPhotoDataURL);
+    document.getElementById('cal-hint').textContent = 'บันทึกแล้ว ✓';
+    setTimeout(()=>{ goTo('screen-teacher'); }, 500);
+  }catch(err){
+    console.error('save photo failed', err);
+    document.getElementById('cal-hint').textContent = 'บันทึกไม่สำเร็จ ลองอีกครั้ง (ตรวจสอบว่าเบราวเซอร์อนุญาต localStorage)';
+  }
+}
+
+/* =====================================================================
+   HOME LEADERBOARD PREVIEW
+   ===================================================================== */
+async function renderLeaderboardHome(){
+  const box = document.getElementById('home-leaderboard');
+  box.innerHTML = '<p class="note">กำลังโหลด...</p>';
+  const board = await loadLeaderboard();
+  if(board.length===0){ box.innerHTML = '<p class="note">ยังไม่มีใครทำสำเร็จ — เป็นคนแรกสิ!</p>'; return; }
+  let html = '<table>';
+  board.slice(0,10).forEach((b,i)=>{
+    html += `<tr><td class="${i===0?'rank1':''}">${i+1}. ${b.name}</td><td class="mono">${fmtTime(b.timeMs)}</td></tr>`;
+  });
+  html += '</table>';
+  box.innerHTML = html;
+}
+
+</script>
+</body>
+</html>
