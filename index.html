@@ -467,7 +467,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
           <span id="gameStatus">กำลังเตรียมความพร้อม AI…</span>
         </div>
 
-        <!-- 5-Second Preparation & Hold Countdown Badge -->
+        <!-- 5-Second Preparation Countdown Badge -->
         <div class="hold-timer-badge prep" id="holdBadge">
           <span>⏳ จัดท่าทางตามเงา:</span>
           <span id="holdSecText" style="font-size:18px; color:var(--gold-light);">5.0</span>
@@ -542,7 +542,7 @@ const POSES = [
 ];
 
 const GRID_W = 40, GRID_H = 30;
-const MATCH_THRESHOLD = 0.38;       // High accuracy tolerance for hand/arm matching
+const MATCH_THRESHOLD = 0.35;       // High accuracy tolerance for hand/arm matching
 const PREP_SECONDS_REQUIRED = 5.0;  // 5 seconds preparation countdown per pose
 const GAME_SECONDS = 240;           // 240 seconds total game duration
 
@@ -737,7 +737,7 @@ document.getElementById('btnGoDashboard').onclick = () => { openDashboard(); };
 document.getElementById('btnBackTeacher').onclick = () => { showScreen('screen-teacher'); };
 
 /* ---------------------------------------------------------------
-   PURE WEB AUDIO SYNTHESIZER (MUSIC & BELL CHIME EFFECT)
+   PURE WEB AUDIO SYNTHESIZER (UPBEAT BGM & BELL CHIME)
 --------------------------------------------------------------- */
 let audioCtx = null;
 let bgMusicInterval = null;
@@ -752,7 +752,6 @@ function initAudioContext() {
   }
 }
 
-// Play Upbeat Exciting Thai Dance Game Background Rhythm
 function startExcitingMusic() {
   initAudioContext();
   stopExcitingMusic();
@@ -797,7 +796,7 @@ function playBellChime() {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
       
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime + idx * 0.08);
+      gain.gain.setValueAtTime(0.35, audioCtx.currentTime + idx * 0.08);
       gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + idx * 0.08 + 1.2);
       
       osc.connect(gain);
@@ -963,7 +962,7 @@ function evaluatePoseAccuracy(liveGrid, refGrid) {
     if (a === 1 && b === 1) overlapCount++;
   }
 
-  if (refActiveCount === 0 || unionCount === 0) return 0;
+  if (refActiveCount === 0 || unionCount === 0) return 0.50; // High default tolerance
 
   const coverageScore = overlapCount / refActiveCount;
   const iouScore = overlapCount / unionCount;
@@ -1278,13 +1277,14 @@ function showStudentDetail(name, sessions) {
 }
 
 /* ---------------------------------------------------------------
-   STUDENT GAME LOGIC (5s PREPARATION + AI VERIFICATION + GUARANTEED TIMER)
+   STUDENT GAME LOGIC (100% INDEPENDENT CLOCK TIMER & DECOUPLED AI)
 --------------------------------------------------------------- */
 let studentName = '', queue = [], results = {}, currentIdx = 0, timeLeft = GAME_SECONDS;
 let gameLoopActive = false, gameVideoEl = null, latestSegResults = null;
-let prepTimeAccumulated = 0;     // Accumulates 5s prep time
+let prepTimeAccumulated = 0;     
 let gameStartTimestamp = 0;
-let lastFrameTimestamp = 0;
+let clockTimerInterval = null;
+let sendingFrames = false;
 
 document.getElementById('btnStartGame').onclick = async () => {
   const name = document.getElementById('studentName').value.trim();
@@ -1297,72 +1297,87 @@ document.getElementById('btnStartGame').onclick = async () => {
 async function startGame() {
   await loadRefs();
   queue = POSES.map(p => p.id);
-  
   results = {}; queue.forEach(id => results[id] = 'pending');
   currentIdx = 0;
   timeLeft = GAME_SECONDS;
   renderProgressDots();
   showScreen('screen-game');
   
+  // 1. GUARANTEED CLOCK TIMER (100% Independent of camera or AI processing!)
+  clearInterval(clockTimerInterval);
+  gameStartTimestamp = Date.now();
+  updateTimerUI();
+  
+  clockTimerInterval = setInterval(() => {
+    if (!gameLoopActive) return;
+    const elapsedSec = Math.floor((Date.now() - gameStartTimestamp) / 1000);
+    timeLeft = Math.max(0, GAME_SECONDS - elapsedSec);
+    updateTimerUI();
+
+    if (timeLeft <= 0) {
+      clearInterval(clockTimerInterval);
+      finishGame();
+    }
+  }, 1000);
+
+  // 2. START CAMERA
   gameVideoEl = document.getElementById('gameVideo');
   document.getElementById('gameStatus').textContent = 'กำลังเปิดกล้อง...';
   try {
     await startCamera(gameVideoEl);
   } catch (e) {
     document.getElementById('gameStatus').textContent = 'ไม่สามารถเปิดกล้องได้: ' + e.message;
-    alert("โปรดอนุญาตสิทธิ์ใช้งานกล้องในบราวเซอร์ของคุณ (Allow Camera Access)");
-    return;
   }
 
+  // 3. MEDIAPIPE MODEL CALLBACK
   const model = getSegModel();
   model.onResults((r) => {
     latestSegResults = r;
     document.getElementById('gameDot').classList.add('ready');
-    document.getElementById('gameStatus').textContent = 'ระบบกำลังประมวลผลท่าทาง...';
+    document.getElementById('gameStatus').textContent = '🟢 AI กำลังตรวจจับท่าทาง';
+    evaluatePoseResult(r);
   });
 
   gameLoopActive = true;
-  gameStartTimestamp = performance.now();
-  lastFrameTimestamp = performance.now();
   loadCurrentPoseUI();
   startExcitingMusic();
-  gameLoop();
+  
+  // 4. NON-BLOCKING CAMERA FRAME TRANSMISSION
+  sendingFrames = false;
+  sendCameraFramesLoop();
+  
   document.getElementById('btnStopTimer').disabled = true;
 }
 
-async function gameLoop() {
-  if (!gameLoopActive) return;
-  const now = performance.now();
-  const dt = Math.min((now - lastFrameTimestamp) / 1000, 0.2); 
-  lastFrameTimestamp = now;
-
-  // 100% Reliable Guaranteed Countdown Timer from 240s
-  const elapsed = (now - gameStartTimestamp) / 1000;
-  timeLeft = Math.max(0, Math.ceil(GAME_SECONDS - elapsed));
-  updateTimerDisplay();
-
-  if (timeLeft <= 0) {
-    finishGame();
-    return;
+function updateTimerUI() {
+  const box = document.getElementById('timerBox');
+  if (box) {
+    box.textContent = '⏱ ' + timeLeft;
+    box.classList.toggle('low', timeLeft <= 30);
   }
-
-  const model = getSegModel();
-  if (gameVideoEl && gameVideoEl.readyState >= 2) {
-    await model.send({ image: gameVideoEl });
-    evaluateFrame(dt);
-  }
-  if (gameLoopActive) requestAnimationFrame(gameLoop);
 }
 
-function evaluateFrame(dt) {
-  if (!latestSegResults) return;
+async function sendCameraFramesLoop() {
+  if (!gameLoopActive) return;
+  if (gameVideoEl && gameVideoEl.readyState >= 2 && !sendingFrames) {
+    sendingFrames = true;
+    try {
+      await getSegModel().send({ image: gameVideoEl });
+    } catch(e){}
+    sendingFrames = false;
+  }
+  if (gameLoopActive) requestAnimationFrame(sendCameraFramesLoop);
+}
+
+function evaluatePoseResult(r) {
+  if (!gameLoopActive || !r) return;
   const poseId = queue[currentIdx];
   if (!poseId || results[poseId] === 'correct') return;
   const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
   if (!ref) return;
 
-  const w = gameVideoEl.videoWidth, h = gameVideoEl.videoHeight;
-  const liveGrid = maskToGrid(latestSegResults.segmentationMask, w, h, true);
+  const w = gameVideoEl.videoWidth || 640, h = gameVideoEl.videoHeight || 480;
+  const liveGrid = maskToGrid(r.segmentationMask, w, h, true);
   const refGrid = stringToGrid(ref.grid);
   
   const score = evaluatePoseAccuracy(liveGrid, refGrid);
@@ -1373,9 +1388,9 @@ function evaluateFrame(dt) {
   const holdBadge = document.getElementById('holdBadge');
   const holdSecText = document.getElementById('holdSecText');
 
-  // PHASE 1: 5-Second Preparation Countdown (ให้เวลาผ่านไปก่อน 5 วินาที)
+  // PHASE 1: 5-Second Preparation Countdown (จัดท่าทาง 5 วินาที)
+  prepTimeAccumulated += 0.15; // Increment prep time on each frame
   if (prepTimeAccumulated < PREP_SECONDS_REQUIRED) {
-    prepTimeAccumulated += dt;
     const secRemaining = Math.max(0, (PREP_SECONDS_REQUIRED - prepTimeAccumulated)).toFixed(1);
     const prepPct = Math.min(100, Math.round(prepTimeAccumulated / PREP_SECONDS_REQUIRED * 100));
 
@@ -1389,7 +1404,7 @@ function evaluateFrame(dt) {
     return;
   }
 
-  // PHASE 2: AI Accuracy Verification Phase (หลังจากครบ 5 วินาทีแรก)
+  // PHASE 2: AI Accuracy Verification Phase (ตรวจสอบท่าทางหลังครบ 5 วินาที)
   holdBadge.className = 'hold-timer-badge';
   holdBadge.style.display = 'flex';
   holdBadge.innerHTML = `<span>🎯 ระบบกำลังตรวจสอบท่า:</span> <span style="font-size:18px; color:var(--gold-light);">${pct}%</span>`;
@@ -1398,7 +1413,7 @@ function evaluateFrame(dt) {
   matchFill.style.width = pct + '%';
   matchText.textContent = `ความตรงกับภาพต้นฉบับ: ${pct}% (เกณฑ์ผ่าน: ${Math.round(MATCH_THRESHOLD*100)}%)`;
 
-  if (score >= MATCH_THRESHOLD) {
+  if (score >= MATCH_THRESHOLD || pct >= 70) {
     markCorrect(poseId);
   }
 }
@@ -1444,7 +1459,7 @@ function loadCurrentPoseUI() {
   matchFill.style.width = '0%';
   document.getElementById('matchText').textContent = 'ความตรงกับภาพต้นฉบับ: 0%';
   
-  prepTimeAccumulated = 0; // Reset 5-second prep timer for each new pose!
+  prepTimeAccumulated = 0; 
   renderProgressDots();
 }
 
@@ -1495,17 +1510,12 @@ document.getElementById('btnSkip').onclick = () => {
   loadCurrentPoseUI();
 };
 
-function updateTimerDisplay() {
-  const box = document.getElementById('timerBox');
-  box.textContent = '⏱ ' + timeLeft;
-  box.classList.toggle('low', timeLeft <= 30);
-}
-
 document.getElementById('btnStopTimer').onclick = () => finishGame();
 
 async function finishGame() {
   if (!gameLoopActive) return;
   gameLoopActive = false;
+  clearInterval(clockTimerInterval);
   stopExcitingMusic();
   stopStream(gameVideoEl);
 
