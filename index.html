@@ -67,12 +67,20 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
 .brand h1 { font-size: 22px; margin: 0; color: var(--maroon-dark); line-height: 1.2; }
 .brand span { display: block; font-size: 11px; color: var(--teal); letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; }
 
+.topbar-controls { display: flex; align-items: center; gap: 10px; }
 .navbtn {
   border: 2px solid var(--maroon); background: var(--paper); color: var(--maroon);
   padding: 8px 16px; border-radius: 999px; font-family: 'Sarabun'; cursor: pointer; font-size: 13px; font-weight: 700;
   box-shadow: 0 4px 12px rgba(122,31,43,0.1); transition: all 0.2s ease;
 }
 .navbtn:hover { background: var(--maroon); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(122,31,43,0.25); }
+
+.audio-toggle-btn {
+  border: 2px solid var(--gold); background: #fffcf5; color: var(--maroon-dark);
+  padding: 8px 16px; border-radius: 999px; font-family: 'Sarabun'; cursor: pointer; font-size: 13px; font-weight: 700;
+  box-shadow: 0 4px 12px rgba(201,147,46,0.15); transition: all 0.2s ease; display: flex; align-items: center; gap: 6px;
+}
+.audio-toggle-btn.muted { border-color: #ccc; color: #888; background: #f5f5f5; }
 
 /* --- Text Hero Header --- */
 .hero-text-block {
@@ -295,7 +303,10 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
         <span>AI THAI DANCE GESTURE MASTER (ม.1)</span>
       </div>
     </div>
-    <button class="navbtn" id="btnHome">🏠 หน้าหลัก</button>
+    <div class="topbar-controls">
+      <button class="audio-toggle-btn" id="btnToggleAudio">🔊 ดนตรี: เปิด</button>
+      <button class="navbtn" id="btnHome">🏠 หน้าหลัก</button>
+    </div>
   </div>
 
   <!-- HOME SCREEN -->
@@ -466,7 +477,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
 
         <!-- Dynamic Accuracy Status Badge -->
         <div class="match-timer-badge" id="holdBadge">
-          <span>🎯 ตรวจจับความถูกต้อง:</span>
+          <span>🎯 ความทาบตรงเงา:</span>
           <span id="matchPctText" style="font-size:18px; color:var(--gold-light);">0%</span>
         </div>
 
@@ -538,7 +549,7 @@ const POSES = [
 ];
 
 const GRID_W = 40, GRID_H = 30;
-const MATCH_THRESHOLD = 0.32;       // Sensitive high tolerance threshold for instant matching
+const MATCH_THRESHOLD = 0.15;       // High tolerance matching for easy triggers
 const GAME_SECONDS = 240;           // 240 seconds total game duration
 
 let poseRefs = {};
@@ -722,9 +733,7 @@ document.getElementById('cardTeacher').onclick = () => {
 };
 
 document.getElementById('cardStudent').onclick = () => {
-  loadRefs().then(() => {
-    document.getElementById('loginWarn').style.display = 'none';
-  });
+  loadRefs();
   showScreen('screen-login');
 };
 
@@ -732,37 +741,57 @@ document.getElementById('btnGoDashboard').onclick = () => { openDashboard(); };
 document.getElementById('btnBackTeacher').onclick = () => { showScreen('screen-teacher'); };
 
 /* ---------------------------------------------------------------
-   RESTORED PREVIOUS CLASSIC BACKGROUND MUSIC & BELL CHIME
+   GUARANTEED WEB AUDIO SYNTHESIZER & AUDIO UNLOCK
 --------------------------------------------------------------- */
 let audioCtx = null;
 let bgMusicInterval = null;
+let soundEnabled = true;
 
-function initAudioContext() {
+function unlockAudio() {
   if (!audioCtx) {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     audioCtx = new AudioCtx();
   }
-  if (audioCtx.state === 'suspended') {
+  if (audioCtx && audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
 }
 
-// Restored Previous Classic Melodic Background Synth Loop
-function startExcitingMusic() {
-  initAudioContext();
-  stopExcitingMusic();
+// Unlock Web Audio API on ANY user click or screen touch
+window.addEventListener('click', unlockAudio, { passive: true });
+window.addEventListener('touchstart', unlockAudio, { passive: true });
 
-  const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63, 293.66]; // Classic C-E-G-C-A-G-E-D loop
+const btnToggleAudio = document.getElementById('btnToggleAudio');
+btnToggleAudio.onclick = () => {
+  unlockAudio();
+  soundEnabled = !soundEnabled;
+  if (soundEnabled) {
+    btnToggleAudio.className = 'audio-toggle-btn';
+    btnToggleAudio.textContent = '🔊 ดนตรี: เปิด';
+    startExcitingMusic();
+  } else {
+    btnToggleAudio.className = 'audio-toggle-btn muted';
+    btnToggleAudio.textContent = '🔇 ดนตรี: ปิด';
+    stopExcitingMusic();
+  }
+};
+
+function startExcitingMusic() {
+  unlockAudio();
+  stopExcitingMusic();
+  if (!soundEnabled) return;
+
+  const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63, 293.66]; // Classic cheerful melody loop
   let step = 0;
 
   bgMusicInterval = setInterval(() => {
-    if (!audioCtx || audioCtx.state !== 'running') return;
+    if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
     try {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.09, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
@@ -770,7 +799,7 @@ function startExcitingMusic() {
       osc.stop(audioCtx.currentTime + 0.22);
       step++;
     } catch(e){}
-  }, 250); // Upbeat classic melody rhythm
+  }, 240);
 }
 
 function stopExcitingMusic() {
@@ -782,8 +811,8 @@ function stopExcitingMusic() {
 
 // Sparkling Bell Chime Effect (เสียงกระดิ่งดังกังวาน ✨🔔)
 function playBellChime() {
-  initAudioContext();
-  if (!audioCtx || audioCtx.state !== 'running') return;
+  unlockAudio();
+  if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
   try {
     const freqs = [1046.50, 1318.51, 1567.98, 2093.00]; // High C6, E6, G6, C7
     freqs.forEach((freq, idx) => {
@@ -792,7 +821,7 @@ function playBellChime() {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
       
-      gain.gain.setValueAtTime(0.35, audioCtx.currentTime + idx * 0.08);
+      gain.gain.setValueAtTime(0.40, audioCtx.currentTime + idx * 0.08);
       gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + idx * 0.08 + 1.2);
       
       osc.connect(gain);
@@ -804,8 +833,8 @@ function playBellChime() {
 }
 
 function playSkipSound() {
-  initAudioContext();
-  if (!audioCtx) return;
+  unlockAudio();
+  if (!soundEnabled || !audioCtx) return;
   try {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -897,7 +926,7 @@ function maskToGrid(maskSource, srcW, srcH, flip = false) {
   const data = ctx.getImageData(0, 0, GRID_W, GRID_H).data;
   const grid = new Uint8Array(GRID_W * GRID_H);
   for (let i = 0; i < grid.length; i++) {
-    grid[i] = data[i * 4] > 100 ? 1 : 0;
+    grid[i] = data[i * 4] > 80 ? 1 : 0;
   }
   return grid;
 }
@@ -918,7 +947,7 @@ function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
   const actx = alphaCanvas.getContext('2d');
   const outImg = actx.createImageData(W, H);
   for (let i = 0; i < md.data.length; i += 4) {
-    const v = md.data[i] > 90 ? 255 : 0;
+    const v = md.data[i] > 80 ? 255 : 0;
     outImg.data[i] = 0; outImg.data[i+1] = 0; outImg.data[i+2] = 0; outImg.data[i+3] = v;
   }
   actx.putImageData(outImg, 0, 0);
@@ -944,6 +973,7 @@ function tintCanvas(alphaCanvas, color) {
   return c;
 }
 
+// ULTRA-FORGIVING ACTIVE SILHOUETTE ACCURACY ALGORITHM
 function evaluatePoseAccuracy(liveGrid, refGrid) {
   let refActiveCount = 0;
   let overlapCount = 0;
@@ -958,12 +988,14 @@ function evaluatePoseAccuracy(liveGrid, refGrid) {
     if (a === 1 && b === 1) overlapCount++;
   }
 
-  if (refActiveCount === 0 || unionCount === 0) return 0.50;
+  // Fallback for default template
+  if (refActiveCount === 0) return 0.85;
 
   const coverageScore = overlapCount / refActiveCount;
-  const iouScore = overlapCount / unionCount;
+  const iouScore = unionCount > 0 ? (overlapCount / unionCount) : 0;
 
-  return Math.max(coverageScore * 0.75 + iouScore * 0.25, coverageScore * 0.85);
+  // Prioritize active coverage of the target arm/silhouette
+  return Math.max(coverageScore * 0.85 + iouScore * 0.15, coverageScore);
 }
 
 function gridToString(grid) { return Array.from(grid).join(''); }
@@ -1273,7 +1305,7 @@ function showStudentDetail(name, sessions) {
 }
 
 /* ---------------------------------------------------------------
-   STUDENT GAME LOGIC (INSTANT REAL-TIME MATCHING & RESTORED BGM)
+   STUDENT GAME LOGIC (EASY ACCURACY MATCHING & GUARANTEED BGM)
 --------------------------------------------------------------- */
 let studentName = '', queue = [], results = {}, currentIdx = 0, timeLeft = GAME_SECONDS;
 let gameLoopActive = false, gameVideoEl = null, latestSegResults = null;
@@ -1285,7 +1317,7 @@ document.getElementById('btnStartGame').onclick = async () => {
   const name = document.getElementById('studentName').value.trim();
   if (!name) { alert('กรุณากรอกชื่อ-นามสกุลก่อนเริ่มเล่นเกม'); return; }
   studentName = name;
-  initAudioContext();
+  unlockAudio();
   await startGame();
 };
 
@@ -1298,7 +1330,7 @@ async function startGame() {
   renderProgressDots();
   showScreen('screen-game');
   
-  // 1. GUARANTEED CLOCK TIMER (Independent of camera/AI processing)
+  // 1. GUARANTEED CLOCK TIMER (100% Independent)
   clearInterval(clockTimerInterval);
   gameStartTimestamp = Date.now();
   updateTimerUI();
@@ -1335,7 +1367,7 @@ async function startGame() {
 
   gameLoopActive = true;
   loadCurrentPoseUI();
-  startExcitingMusic(); // Start Restored Classic Background Music Loop!
+  startExcitingMusic(); // Play Music!
   
   // 4. NON-BLOCKING CAMERA FRAME TRANSMISSION
   sendingFrames = false;
@@ -1364,7 +1396,7 @@ async function sendCameraFramesLoop() {
   if (gameLoopActive) requestAnimationFrame(sendCameraFramesLoop);
 }
 
-// INSTANT REAL-TIME POSE ACCURACY EVALUATION (NO MANDATORY 5-SECOND DELAY)
+// HIGHLY SENSITIVE & ACCURATE INSTANT POSE EVALUATION
 function evaluatePoseResult(r) {
   if (!gameLoopActive || !r) return;
   const poseId = queue[currentIdx];
@@ -1377,18 +1409,19 @@ function evaluatePoseResult(r) {
   const refGrid = stringToGrid(ref.grid);
   
   const score = evaluatePoseAccuracy(liveGrid, refGrid);
-  const pct = Math.min(100, Math.round(score / MATCH_THRESHOLD * 100));
+  // Scale display score nicely so student sees 0-100% easily
+  const displayPct = Math.min(100, Math.round(score * 250));
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
   const matchText = document.getElementById('matchText');
   const matchPctText = document.getElementById('matchPctText');
 
-  matchPctText.textContent = pct + '%';
-  matchFill.style.width = pct + '%';
-  matchText.textContent = `ความตรงกับภาพต้นฉบับ: ${pct}% (เกณฑ์ผ่าน: ${Math.round(MATCH_THRESHOLD*100)}%)`;
+  matchPctText.textContent = displayPct + '%';
+  matchFill.style.width = displayPct + '%';
+  matchText.textContent = `ความทาบตรงกับภาพต้นฉบับ: ${displayPct}% (เกณฑ์ผ่าน: 35%)`;
 
-  // INSTANT PASS EVALUATION: Trigger as soon as target accuracy score is reached!
-  if (score >= MATCH_THRESHOLD || pct >= 65) {
+  // EASY PASS TRIGGER: If student overlays arms/body reasonably near silhouette (score >= 0.15 or displayPct >= 35%), trigger "Pass"!
+  if (score >= MATCH_THRESHOLD || displayPct >= 35) {
     markCorrect(poseId);
   }
 }
@@ -1431,7 +1464,7 @@ function loadCurrentPoseUI() {
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
   matchFill.style.width = '0%';
-  document.getElementById('matchText').textContent = 'ความตรงกับภาพต้นฉบับ: 0%';
+  document.getElementById('matchText').textContent = 'ความทาบตรงกับภาพต้นฉบับ: 0%';
   document.getElementById('matchPctText').textContent = '0%';
   
   renderProgressDots();
@@ -1510,7 +1543,7 @@ async function finishGame() {
   showScreen('screen-result');
 }
 
-document.getElementById('btnReplay').onclick = async () => { initAudioContext(); await startGame(); };
+document.getElementById('btnReplay').onclick = async () => { unlockAudio(); await startGame(); };
 
 /* ---------------------------------------------------------------
    INIT ON LOAD
