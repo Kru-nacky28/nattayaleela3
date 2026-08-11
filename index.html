@@ -2,943 +2,1481 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>นาฏยลีลา — ฝึกนาฏยศัพท์ตามภาพต้นแบบ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>นาฏยรำไทย AI Challenge — เกมปฏิบัตินาฏยศัพท์ด้วย AI (ม.1)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;700;900&family=Noto+Sans+Thai:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-segmentation@1.0.2/dist/body-segmentation.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Chonburi&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
 <style>
-  :root{
-    --cream:#FBF5E9;
-    --ink:#2B2019;
-    --maroon:#7A1F2B;
-    --maroon-dark:#5A1620;
-    --gold:#C9A227;
-    --gold-light:#E4C766;
-    --teal:#0B5345;
-    --teal-light:#13735F;
-    --line:rgba(43,32,25,0.12);
-    --radius:18px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);font-family:'Noto Sans Thai',sans-serif;height:100%;overflow-x:hidden;}
-  h1,h2,h3,.display{font-family:'Noto Serif Thai',serif;}
-  .mono{font-family:'JetBrains Mono',monospace;}
-  button{font-family:inherit;cursor:pointer;border:none;}
-  .screen{display:none;min-height:100vh;flex-direction:column;align-items:center;padding:24px 16px 48px;}
-  .screen.active{display:flex;}
+:root {
+  --maroon: #7A1F2B;
+  --maroon-dark: #4A101A;
+  --maroon-light: #9B2C3B;
+  --gold: #C9932E;
+  --gold-light: #F3E5AB;
+  --gold-hover: #E5A735;
+  --teal: #0E5C56;
+  --teal-light: #16857C;
+  --cream: #FDF9F0;
+  --paper: #FFFFFF;
+  --ink: #241512;
+  --gray-sub: #665752;
+  --ok: #2F8F5B;
+  --warn: #C64B3B;
+  --radius: 20px;
+  --shadow: 0 10px 30px rgba(36,21,18,0.12);
+  --shadow-lg: 0 18px 45px rgba(122,31,43,0.25);
+}
 
-  /* ---------- header / brand ---------- */
-  .brand{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
-  .brand-mark{width:46px;height:46px;flex:none;}
-  .brand h1{font-size:clamp(28px,5vw,40px);font-weight:900;color:var(--maroon);margin:0;letter-spacing:.5px;}
-  .brand .sub{font-size:14px;color:var(--teal);font-weight:700;margin-top:-4px;}
-  .eyebrow{font-size:13px;letter-spacing:.14em;color:var(--gold-light);background:var(--maroon);
-    display:inline-block;padding:4px 12px;border-radius:999px;margin-bottom:14px;font-weight:700;}
+* { box-sizing: border-box; }
+body { margin: 0; }
+html, body {
+  min-height: 100vh;
+  font-family: 'Sarabun', sans-serif;
+  background:
+    radial-gradient(circle at 12% -10%, rgba(201,147,46,0.25), transparent 50%),
+    radial-gradient(circle at 88% 100%, rgba(14,92,86,0.2), transparent 45%),
+    var(--cream);
+  color: var(--ink);
+}
 
-  /* ---------- kbach frame (signature element) ---------- */
-  .kbach-frame{position:relative;border-radius:var(--radius);padding:14px;background:linear-gradient(180deg,var(--maroon) 0%,var(--maroon-dark) 100%);
-    box-shadow:0 18px 40px -18px rgba(90,22,32,.55);}
-  .kbach-frame::before,.kbach-frame::after,.kbach-frame .c3,.kbach-frame .c4{
-    content:'';position:absolute;width:34px;height:34px;background:no-repeat center/contain;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M2 98 C 2 40, 40 2, 98 2' fill='none' stroke='%23C9A227' stroke-width='7'/><path d='M2 98 C 30 98, 50 78, 50 50' fill='none' stroke='%23C9A227' stroke-width='4'/></svg>");
-    opacity:.9;
-  }
-  .kbach-frame::before{top:6px;left:6px;}
-  .kbach-frame::after{top:6px;right:6px;transform:scaleX(-1);}
-  .kbach-frame .c3{bottom:6px;left:6px;transform:scaleY(-1);}
-  .kbach-frame .c4{bottom:6px;right:6px;transform:scale(-1,-1);}
+h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; letter-spacing: 0.5px; }
+.app { max-width: 1050px; margin: 0 auto; padding: 16px 16px 60px; }
+.screen { display: none; animation: fadein 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+.screen.active { display: block; }
+@keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
-  .stage-wrap{position:relative;width:min(92vw,560px);aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:#1b1310;}
-  .zoom-wrap{position:absolute;inset:0;transition:transform .3s ease;transform-origin:center center;}
-  video,.ghost-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
-  .ghost-photo{opacity:.5;pointer-events:none;display:none;border:3px solid #000;box-sizing:border-box;}
-  .ghost-photo.show{display:block;}
-  /* focus presets: zoomed + panned so only the relevant body part fills the frame */
-  .zoom-wrap.zoom-hand{transform:scale(1.7) translateY(-16%);}
-  .zoom-wrap.zoom-foot{transform:scale(1.7) translateY(20%);}
-  .zoom-wrap.zoom-full{transform:scale(1) translateY(0);}
-  .focus-tag{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(201,162,39,.92);
-    color:#2B2019;font-weight:700;font-size:12px;padding:4px 12px;border-radius:999px;display:none;}
-  .focus-tag.show{display:block;}
+/* --- Kranok Flourish Divider --- */
+.flourish { display: flex; align-items: center; gap: 14px; margin: 20px 0 26px; color: var(--gold); }
+.flourish svg { flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(201,147,46,0.3)); }
+.flourish .line { flex: 1; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
 
-  .hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:5;}
-  .pill{background:rgba(27,19,16,.72);color:var(--gold-light);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700;backdrop-filter:blur(3px);}
-  .pill.timer{font-family:'JetBrains Mono',monospace;font-size:16px;}
-  .pill.status-ok{background:rgba(19,115,95,.9);color:#fff;}
-  .pill.status-wait{background:rgba(90,22,32,.85);color:var(--gold-light);}
+/* --- Topbar --- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; padding: 12px 6px 18px;
+  border-bottom: 2px dashed rgba(201,147,46,0.3);
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand .mark {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: conic-gradient(from 200deg, var(--maroon), var(--gold), var(--teal), var(--maroon));
+  box-shadow: 0 4px 15px rgba(122,31,43,0.3); position: relative; flex-shrink: 0;
+  border: 2px solid var(--gold-light);
+}
+.brand .mark::after { content: "🎭"; position: absolute; inset: 4px; background: var(--paper); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.brand h1 { font-size: 22px; margin: 0; color: var(--maroon-dark); line-height: 1.2; }
+.brand span { display: block; font-size: 11px; color: var(--teal); letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; }
 
-  .correct-flash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    background:rgba(19,115,95,.35);z-index:8;opacity:0;pointer-events:none;transition:opacity .15s ease;}
-  .correct-flash.show{opacity:1;}
-  .correct-flash .msg{background:rgba(11,83,69,.95);color:#fff;font-family:'Noto Serif Thai',serif;
-    font-weight:900;font-size:28px;padding:12px 28px;border-radius:16px;box-shadow:0 10px 26px -8px rgba(0,0,0,.5);}
+.navbtn {
+  border: 2px solid var(--maroon); background: var(--paper); color: var(--maroon);
+  padding: 8px 16px; border-radius: 999px; font-family: 'Sarabun'; cursor: pointer; font-size: 13px; font-weight: 700;
+  box-shadow: 0 4px 12px rgba(122,31,43,0.1); transition: all 0.2s ease;
+}
+.navbtn:hover { background: var(--maroon); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(122,31,43,0.25); }
 
-  .pose-caption{position:absolute;bottom:10px;left:10px;right:10px;text-align:center;z-index:5;}
-  .pose-caption .name{display:inline-block;background:rgba(27,19,16,.78);color:#fff;font-family:'Noto Serif Thai',serif;
-    font-weight:700;font-size:20px;padding:6px 18px;border-radius:12px;}
+/* --- Text Hero Header --- */
+.hero-text-block {
+  text-align: center; padding: 28px 14px 10px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, rgba(201,147,46,0.18), rgba(122,31,43,0.1));
+  border: 1.5px solid var(--gold); color: var(--maroon-dark); padding: 8px 22px; border-radius: 999px;
+  font-size: 14px; font-weight: 800; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(201,147,46,0.15);
+}
+.hero-text-block h2 {
+  font-size: clamp(26px, 5.5vw, 42px); color: var(--maroon-dark); margin: 0 0 12px; line-height: 1.3;
+}
+.hero-text-block p {
+  color: var(--gray-sub); max-width: 680px; margin: 0 auto 20px; font-size: 15px; line-height: 1.6; font-weight: 500;
+}
 
-  /* small, fully-clear reference thumbnail so students always have a crisp copy to check */
-  .ref-thumb{position:absolute;top:10px;right:10px;width:78px;height:104px;border-radius:10px;overflow:hidden;
-    border:2px solid var(--gold);box-shadow:0 6px 14px -6px rgba(0,0,0,.5);z-index:6;display:none;background:#1b1310;}
-  .ref-thumb.show{display:block;}
-  .ref-thumb img{width:100%;height:100%;object-fit:cover;}
-  .ref-thumb .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(27,19,16,.75);color:var(--gold-light);
-    font-size:9px;text-align:center;padding:1px 0;font-weight:700;}
+.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 780px; margin: 20px auto 0; }
+@media (max-width: 600px) { .role-grid { grid-template-columns: 1fr; } }
 
-  /* ---------- buttons ---------- */
-  .btn{padding:14px 26px;border-radius:12px;font-weight:700;font-size:16px;transition:transform .12s ease;}
-  .btn:active{transform:scale(.97);}
-  .btn-primary{background:var(--maroon);color:var(--gold-light);}
-  .btn-primary:hover{background:var(--maroon-dark);}
-  .btn-teal{background:var(--teal);color:#fff;}
-  .btn-teal:hover{background:var(--teal-light);}
-  .btn-ghost{background:transparent;color:var(--maroon);border:2px solid var(--maroon);}
-  .btn-gold{background:var(--gold);color:var(--ink);}
-  .btn[disabled]{opacity:.4;cursor:not-allowed;}
-  .btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.role-card {
+  background: linear-gradient(145deg, #ffffff, #fdfaf3); border-radius: var(--radius); padding: 36px 24px; box-shadow: var(--shadow);
+  cursor: pointer; border: 2px solid rgba(201,147,46,0.35); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; position: relative; overflow: hidden;
+  user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.role-card::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+  background: linear-gradient(90deg, var(--maroon), var(--gold), var(--teal));
+}
+.role-card:hover, .role-card:active { border-color: var(--gold); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.role-card .icon { font-size: 50px; margin-bottom: 12px; display: inline-block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
+.role-card h3 { margin: 0; color: var(--maroon-dark); font-size: 24px; pointer-events: none; }
 
-  /* ---------- cards / lists ---------- */
-  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;width:min(92vw,560px);}
-  .list-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--line);}
-  .list-row:last-child{border-bottom:none;}
-  .tag-done{color:var(--teal);font-weight:700;font-size:13px;}
-  .tag-missing{color:#a5433a;font-weight:700;font-size:13px;}
+/* --- Buttons & Data Sync Tools --- */
+.btn {
+  font-family: 'Sarabun'; font-weight: 700; border: none; border-radius: 14px; padding: 12px 24px;
+  cursor: pointer; font-size: 14px; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary { background: linear-gradient(135deg, var(--maroon), var(--maroon-dark)); color: #fff; box-shadow: 0 6px 18px rgba(122,31,43,0.3); }
+.btn-primary:hover { background: linear-gradient(135deg, var(--maroon-light), var(--maroon)); transform: translateY(-2px); box-shadow: 0 8px 22px rgba(122,31,43,0.4); }
+.btn-gold { background: linear-gradient(135deg, var(--gold), #b37e20); color: #2d1d03; box-shadow: 0 6px 18px rgba(201,147,46,0.3); }
+.btn-gold:hover { background: linear-gradient(135deg, var(--gold-light), var(--gold)); transform: translateY(-2px); }
+.btn-teal { background: linear-gradient(135deg, var(--teal), #0a443f); color: #fff; box-shadow: 0 6px 18px rgba(14,92,86,0.3); }
+.btn-teal:hover { background: linear-gradient(135deg, var(--teal-light), var(--teal)); transform: translateY(-2px); }
+.btn-ghost { background: #fff; border: 2px solid #d9c9b3; color: var(--ink); }
+.btn-ghost:hover { background: rgba(201,147,46,0.1); border-color: var(--gold); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
 
-  input[type=text],input[type=password]{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);font-size:16px;font-family:inherit;}
-  label{font-size:13px;font-weight:700;color:var(--maroon);display:block;margin-bottom:6px;}
-  .field{width:min(92vw,420px);margin-bottom:16px;}
+/* Sync Transfer Panel */
+.sync-panel {
+  background: linear-gradient(135deg, #fffcf5, #f7f0e1); border: 2px dashed var(--gold); border-radius: var(--radius);
+  padding: 18px 22px; margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; box-shadow: var(--shadow);
+}
+.sync-panel h4 { margin: 0 0 4px; color: var(--maroon-dark); font-size: 16px; }
+.sync-panel p { margin: 0; font-size: 13px; color: var(--gray-sub); }
 
-  table{width:min(92vw,480px);border-collapse:collapse;}
-  th,td{text-align:left;padding:8px 10px;font-size:14px;}
-  tr:nth-child(odd) td{background:#fdf9f0;}
-  .rank1{color:var(--maroon);font-weight:900;}
+/* --- Pose Grid (Teacher) --- */
+.pose-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px; margin-top: 20px; }
+.pose-card {
+  background: var(--paper); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow);
+  border: 2px solid rgba(201,147,46,0.25); transition: all 0.25s ease; display: flex; flex-direction: column;
+}
+.pose-card:hover { border-color: var(--gold); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.pose-thumb {
+  width: 100%; aspect-ratio: 4/3; background: #f5eedf repeating-linear-gradient(45deg,#f4ede0,#f4ede0 10px,#efe3cf 10px,#efe3cf 20px);
+  display: flex; align-items: center; justify-content: center; color: #a3937f; font-size: 13px; position: relative; overflow: hidden;
+}
+.pose-thumb img { width: 100%; height: 100%; object-fit: contain; background: #faf5ec; display: block; }
+.pose-meta { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.pose-meta .num { font-size: 12px; color: var(--gold); font-weight: 800; letter-spacing: 1px; }
+.pose-meta h4 { margin: 4px 0 10px; font-size: 16px; color: var(--ink); }
+.pose-card-actions { display: flex; gap: 8px; margin-top: 10px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 999px; width: fit-content; }
+.tag.done { background: #e4f4ea; color: var(--ok); border: 1px solid #b7e4c7; }
+.tag.todo { background: #f6e6d8; color: var(--maroon); border: 1px solid #f0c3b5; }
 
-  .note{font-size:13px;color:#7a6c5d;max-width:min(92vw,480px);text-align:center;line-height:1.6;}
-  .back-link{align-self:flex-start;color:var(--teal);font-weight:700;font-size:14px;margin-bottom:10px;background:none;}
-  .top-bar{width:min(92vw,640px);display:flex;justify-content:space-between;align-items:center;}
+/* --- Uploader Modal --- */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(20,10,8,0.7); backdrop-filter: blur(5px); display: none;
+  align-items: center; justify-content: center; z-index: 100; padding: 16px; animation: fadein 0.2s ease;
+}
+.modal-backdrop.active { display: flex; }
+.modal-card {
+  background: var(--paper); max-width: 720px; width: 100%; max-height: 92vh; overflow-y: auto;
+  border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-lg); border: 3px solid var(--gold); position: relative;
+}
+.modal-close { position: absolute; top: 18px; right: 18px; background: #faf5eb; border: none; font-size: 20px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; color: var(--maroon); font-weight: bold; }
+
+.upload-box {
+  border: 2px dashed var(--gold); background: #fffcf5; border-radius: var(--radius); padding: 24px; text-align: center;
+  cursor: pointer; transition: all 0.2s; margin-top: 14px;
+}
+.upload-box:hover, .upload-box.dragover { background: #f7eed8; border-color: var(--maroon); }
+.upload-box .up-icon { font-size: 38px; color: var(--gold); margin-bottom: 6px; display: block; }
+
+.preview-stage {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; background: #faf5eb; padding: 16px; border-radius: 14px; border: 1px solid #ebdcc8;
+}
+@media (max-width: 640px) { .preview-stage { grid-template-columns: 1fr; } }
+.preview-box { text-align: center; }
+.preview-box h5 { margin: 0 0 8px; font-size: 13px; color: var(--maroon-dark); font-weight: 700; }
+.preview-box img, .preview-box canvas {
+  width: 100%; max-height: 240px; object-fit: contain; background: #fff; border-radius: 12px; border: 1px solid #e2d5c3; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+/* --- Camera Box & Overlays --- */
+.stage-wrap { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
+.camera-box {
+  position: relative; width: 100%; max-width: 560px; aspect-ratio: 4/3; border-radius: var(--radius);
+  overflow: hidden; background: #111; box-shadow: var(--shadow-lg); border: 4px solid var(--gold); flex-shrink: 0;
+}
+.camera-box video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+
+.overlay-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none;
+  opacity: 0.55; transition: opacity 0.15s;
+}
+.overlay-img.mode-silhouette { mix-blend-mode: multiply; }
+.overlay-img.mode-original { mix-blend-mode: normal; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
+
+.status-pill {
+  position: absolute; top: 14px; left: 14px; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  color: #fff; padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 5;
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: inline-block; }
+.dot.ready { background: #34d399; box-shadow: 0 0 10px #34d399; }
+
+/* 5-Second Hold Countdown Banner overlay on Camera */
+.hold-timer-badge {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+  background: rgba(122,31,43,0.92); color: #fff; backdrop-filter: blur(8px);
+  border: 2px solid var(--gold); padding: 8px 20px; border-radius: 999px;
+  font-size: 14px; font-weight: 800; display: none; align-items: center; gap: 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4); animation: pulse 1s infinite;
+}
+.hold-timer-badge.active { display: flex; }
+
+/* --- Student Login Card --- */
+.login-card {
+  max-width: 460px; margin: 36px auto; background: var(--paper); padding: 40px 34px; border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); text-align: center; border: 2px solid var(--gold); position: relative; overflow: hidden;
+}
+.login-card input {
+  width: 100%; padding: 14px 18px; border-radius: 14px; border: 2px solid #d9c9b3; font-family: 'Sarabun'; font-size: 16px; margin: 18px 0; outline: none; transition: border-color 0.2s;
+}
+.login-card input:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,147,46,0.2); }
+
+/* --- Game Controls & Progress --- */
+.game-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.timerbox {
+  font-family: 'Chonburi'; font-size: 32px; color: var(--maroon-dark); background: var(--paper); padding: 8px 24px;
+  border-radius: 16px; box-shadow: var(--shadow); border: 2px solid var(--gold); display: flex; align-items: center; gap: 8px;
+}
+.timerbox.low { color: var(--warn); border-color: var(--warn); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+.progress-dots { display: flex; gap: 8px; flex-wrap: wrap; }
+.pdot {
+  width: 36px; height: 36px; border-radius: 50%; background: #eadfce; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800; color: #8a7864; border: 2px solid transparent; transition: all 0.2s ease;
+}
+.pdot.current { border-color: var(--gold); transform: scale(1.15); box-shadow: 0 0 12px rgba(201,147,46,0.6); background: #fff; color: var(--maroon-dark); }
+.pdot.correct { background: var(--ok); color: #fff; }
+.pdot.skipped { background: #f0d8b0; color: var(--maroon); }
+
+.pose-current { text-align: center; margin: 12px 0 16px; }
+.pose-current .num { color: var(--gold); font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+.pose-current h2 { margin: 2px 0; font-size: 34px; color: var(--maroon-dark); }
+
+.overlay-controls {
+  background: var(--paper); padding: 14px 20px; border-radius: 16px; box-shadow: var(--shadow); margin-top: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border: 1px solid #eee0c8;
+}
+.overlay-controls label { font-size: 13px; font-weight: 700; color: var(--maroon-dark); display: flex; align-items: center; gap: 8px; }
+.overlay-controls input[type="range"] { accent-color: var(--gold); width: 130px; cursor: pointer; }
+
+/* Progress bar for pose match & 5s hold timer */
+.match-fill { height: 14px; border-radius: 999px; background: #eee0c8; overflow: hidden; max-width: 560px; margin: 14px auto 6px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.12); position: relative; }
+.match-fill i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--teal)); width: 0%; transition: width 0.12s ease-out; }
+.match-fill i.holding { background: linear-gradient(90deg, var(--teal), var(--ok)); }
+
+.checkmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
+.checkmark svg { width: 140px; height: 140px; opacity: 0; transform: scale(0.5); filter: drop-shadow(0 6px 16px rgba(47,143,91,0.5)); }
+.checkmark.show svg { opacity: 1; transform: scale(1); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+/* --- Result Card --- */
+.result-card {
+  max-width: 540px; margin: 36px auto; background: var(--paper); padding: 44px 36px; border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); text-align: center; border: 3px solid var(--gold);
+}
+.result-card .score { font-family: 'Chonburi'; font-size: 64px; color: var(--maroon-dark); margin: 12px 0; }
+.result-card .sub { color: var(--gray-sub); font-size: 16px; margin-bottom: 24px; }
+
+/* --- Dashboard --- */
+.student-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 18px; }
+.student-item {
+  background: var(--paper); padding: 18px 20px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer;
+  border: 2px solid transparent; transition: all 0.2s;
+}
+.student-item:hover { border-color: var(--gold); transform: translateY(-3px); }
+.student-item h4 { margin: 0 0 6px; color: var(--maroon-dark); font-size: 17px; }
+.student-item span { font-size: 13px; color: var(--gray-sub); display: block; }
+
+table.hist { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--paper); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+table.hist th, table.hist td { padding: 14px 18px; text-align: left; font-size: 14px; border-bottom: 1px solid #eee0c8; }
+table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-family: 'Chonburi'; font-size: 13px; }
+.bar-track { background: #eee0c8; border-radius: 6px; height: 10px; width: 120px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--teal); }
+.hint { font-size: 13px; color: var(--gray-sub); margin-top: 6px; line-height: 1.5; }
 </style>
 </head>
 <body>
+<div class="app">
 
-<!-- ============ SCREEN: HOME ============ -->
-<div class="screen active" id="screen-home">
-  <div class="brand">
-    <svg class="brand-mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#7A1F2B"/><path d="M50 14 C30 14 18 32 18 50 C18 74 40 86 50 86 C60 86 82 74 82 50 C82 32 70 14 50 14 Z" fill="none" stroke="#C9A227" stroke-width="3"/><path d="M50 30 Q66 40 50 70 Q34 40 50 30 Z" fill="#C9A227"/></svg>
-    <div>
-      <h1>นาฏยลีลา</h1>
-      <div class="sub">ฝึกนาฏยศัพท์ตามภาพต้นแบบ</div>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark"></div>
+      <div>
+        <h1>นาฏยรำไทย AI Challenge</h1>
+        <span>AI THAI DANCE GESTURE MASTER (ม.1)</span>
+      </div>
+    </div>
+    <button class="navbtn" id="btnHome">🏠 หน้าหลัก</button>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screen-home">
+    <div class="hero-text-block">
+      <div class="hero-badge">✨ สื่อการเรียนรู้รายวิชานาฏศิลป์</div>
+      <h2>การพัฒนาทักษะการปฏิบัตินาฏยศัพท์ด้วย AI</h2>
+      <p>สื่อการเรียนรู้รายวิชานาฏศิลป์ เพื่อพัฒนาทักษะการปฏิบัตินาฏยศัพท์ส่วนมือของนักเรียนชั้นมัธยมศึกษาปีที่ 1 ด้วยเทคโนโลยีตรวจจับท่าทางปัญญาประดิษฐ์ (AI Gesture Recognition)</p>
+    </div>
+    
+    <div class="flourish">
+      <div class="line"></div>
+      <svg width="30" height="30" viewBox="0 0 26 26"><path d="M13 2 C 16 8, 24 8, 22 13 C 24 18, 16 18, 13 24 C 10 18, 2 18, 4 13 C 2 8, 10 8, 13 2 Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <div class="line"></div>
+    </div>
+
+    <div class="role-grid">
+      <div class="role-card" id="cardTeacher">
+        <span class="icon">🪷</span>
+        <h3>เมนูสำหรับครูผู้สอน</h3>
+      </div>
+      <div class="role-card" id="cardStudent">
+        <span class="icon">💃</span>
+        <h3>เมนูสำหรับนักเรียน</h3>
+      </div>
     </div>
   </div>
-  <div class="eyebrow">ยืนตรงหน้ากล้อง แล้วทำท่าให้เหมือนภาพต้นแบบ</div>
 
-  <div class="card" style="margin-top:8px;">
-    <p style="margin-top:0;color:#6b5f54;font-size:14px;line-height:1.7;">
-      ครูถ่ายภาพนิ่งท่าต้นแบบไว้ล่วงหน้า เมื่อนักเรียนเล่น จะเห็นภาพครูซ้อนอยู่บนกล้องของตัวเอง
-      ให้ขยับตัวจนภาพซ้อนทับกันพอดี แล้วกดยืนยันเองว่าท่านั้นถูกต้อง จึงจะไปข้อถัดไปได้
-    </p>
-    <div class="btn-row" style="margin-top:14px;">
-      <button class="btn btn-primary" onclick="goTo('screen-name')">เข้าเล่น (นักเรียน)</button>
-      <button class="btn btn-ghost" onclick="goTo('screen-pin')">โหมดครู</button>
+  <!-- TEACHER SCREEN: POSE MANAGEMENT & SYNC -->
+  <div class="screen" id="screen-teacher">
+    <div class="row" style="justify-content:space-between; margin-top:0;">
+      <div>
+        <h2 style="color:var(--maroon-dark); margin:0;">จัดการภาพต้นฉบับนาฏยศัพท์ 8 ท่า</h2>
+        <p class="hint" style="margin:4px 0 0;">รองรับภาพเฉพาะท่อนแขน/ส่วนมือและเต็มตัว ระบบบีบอัดภาพและตรวจจับตำแหน่งให้อัตโนมัติอย่างเสถียร</p>
+      </div>
+      <button class="btn btn-gold" id="btnGoDashboard">📊 ดูรายงานผลนักเรียน</button>
+    </div>
+
+    <!-- Data Transfer Panel -->
+    <div class="sync-panel">
+      <div>
+        <h4>📲 ถ่ายโอนข้อมูลภาพต้นฉบับข้ามอุปกรณ์ (PC ➔ มือถือ/แท็บเล็ต)</h4>
+        <p>คุณครูสามารถส่งออกไฟล์ชุดภาพ 8 ท่าจากคอมพิวเตอร์ นำไปกด "นำเข้า" ในโทรศัพท์มือถือเครื่องอื่นๆ ได้ทันที!</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-gold" id="btnExportData">📥 ส่งออกไฟล์ข้อมูล (JSON)</button>
+        <label class="btn btn-teal">
+          📤 นำเข้าไฟล์ข้อมูล (JSON)
+          <input type="file" id="importJsonInput" accept=".json" style="display:none;">
+        </label>
+      </div>
+    </div>
+
+    <!-- Bulk Upload Bar -->
+    <div class="sync-panel" style="margin-top:14px; background:#faf5eb; border-color:var(--teal);">
+      <div class="bulk-info">
+        <h4 style="color:var(--teal);">📂 อัปโหลดภาพต้นฉบับหลายไฟล์พร้อมกัน (Bulk Upload)</h4>
+        <p>เลือกไฟล์ภาพจากเครื่องพร้อมกัน ระบบจะจัดเรียงและบีบอัดข้อมูลให้พอดีกับหน่วยความจำเครื่อง</p>
+      </div>
+      <label class="btn btn-teal">
+        📁 เลือกหลายไฟล์ภาพ
+        <input type="file" id="bulkFileInput" multiple accept="image/*" style="display:none;">
+      </label>
+    </div>
+
+    <div class="pose-grid" id="teacherGrid"></div>
+  </div>
+
+  <!-- UPLOAD / RECORD MODAL FOR SINGLE POSE -->
+  <div class="modal-backdrop" id="poseModal">
+    <div class="modal-card">
+      <button class="modal-close" id="btnCloseModal">✕</button>
+      <h3 style="color:var(--maroon-dark); margin-top:0;" id="modalTitle">อัปโหลดภาพต้นฉบับ: ตั้งวงบน</h3>
+
+      <!-- Tab Switcher & Direction Controls -->
+      <div class="row" style="margin-top:10px; justify-content:space-between;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-gold" id="tabUpload">🖼 อัปโหลดไฟล์ภาพจากเครื่อง</button>
+          <button class="btn btn-ghost" id="tabCamera">📸 ถ่ายด้วยกล้องสด</button>
+        </div>
+        <button class="btn btn-ghost" id="btnFlipDir" style="color:var(--teal); font-weight:700;">↔ พลิกกลับทิศทางภาพ</button>
+      </div>
+
+      <!-- Tab Content 1: File Upload -->
+      <div id="viewUpload" style="margin-top:14px;">
+        <div class="upload-box" id="dropZone">
+          <span class="up-icon">📤</span>
+          <p><strong>คลิกเพื่อเลือกไฟล์ภาพ</strong> หรือ ลากไฟล์ภาพมาวางที่นี่</p>
+          <span class="hint">รองรับทั้งภาพท่อนแขน/ส่วนมือ และเต็มตัว (บีบอัดขนาดภาพและสแกนพิกัดให้อัตโนมัติ)</span>
+          <input type="file" id="singleFileInput" accept="image/*" style="display:none;">
+        </div>
+      </div>
+
+      <!-- Tab Content 2: Live Camera -->
+      <div id="viewCamera" style="margin-top:14px; display:none;">
+        <div class="camera-box" style="margin:0 auto;">
+          <video id="recVideo" autoplay playsinline webkit-playsinline muted></video>
+          <div class="status-pill"><span class="dot" id="recDot"></span><span id="recStatus">กำลังเปิดกล้อง…</span></div>
+        </div>
+        <div class="row" style="justify-content:center; margin-top:14px;">
+          <button class="btn btn-primary" id="btnCapture">📸 ถ่ายภาพสด</button>
+        </div>
+      </div>
+
+      <!-- Preview Stage -->
+      <div class="preview-stage" id="previewStage" style="display:none;">
+        <div class="preview-box">
+          <h5>1. ภาพต้นฉบับขนาดจริง (Original Image)</h5>
+          <img id="imgOriginalPreview" alt="ภาพต้นฉบับ">
+        </div>
+        <div class="preview-box">
+          <h5>2. ภาพเงา AI ตรวจจับ (Generated Silhouette)</h5>
+          <canvas id="canvasSilhouettePreview"></canvas>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="row" id="modalActions" style="justify-content:flex-end; display:none; margin-top:20px;">
+        <button class="btn btn-ghost" id="btnCancelModal">ยกเลิก</button>
+        <button class="btn btn-gold" id="btnSaveSingleRef">✅ บันทึกเป็นภาพอ้างอิง</button>
+      </div>
     </div>
   </div>
 
-  <button class="btn btn-gold" style="margin-top:16px;" onclick="renderLeaderboardHome()">🏆 ดูกระดานผู้ชนะ</button>
-  <div id="home-leaderboard" style="width:min(92vw,560px);margin-top:14px;"></div>
-
-  <p class="note" style="margin-top:22px;">
-    ต้องเปิดหน้านี้ผ่านลิงก์เว็บที่มี https:// (ไม่ใช่ไฟล์ในเครื่อง) และอนุญาตให้ใช้กล้อง เบราวเซอร์ที่แนะนำ: Chrome
-  </p>
-</div>
-
-<!-- ============ SCREEN: NAME ============ -->
-<div class="screen" id="screen-name">
-  <button class="back-link" onclick="goTo('screen-home')">‹ กลับ</button>
-  <h2 class="display" style="color:var(--maroon);">สวัสดีนักแสดง 🎭</h2>
-  <div class="field">
-    <label>ชื่อผู้เล่น (จะแสดงบนกระดานผู้ชนะ)</label>
-    <input type="text" id="player-name" placeholder="เช่น น้องข้าวปั้น" maxlength="20">
+  <!-- TEACHER DASHBOARD -->
+  <div class="screen" id="screen-dashboard">
+    <button class="navbtn" id="btnBackTeacher">← กลับหน้าจัดการท่า</button>
+    <h2 style="color:var(--maroon-dark); margin-top:16px;">รายงานผลการปฏิบัตินาฏยศัพท์นักเรียน</h2>
+    <div id="dashList" class="student-list"></div>
+    <div id="dashDetail"></div>
   </div>
-  <button class="btn btn-primary" onclick="confirmName()">เริ่มฝึก</button>
-</div>
 
-<!-- ============ SCREEN: GAME ============ -->
-<div class="screen" id="screen-game">
-  <div class="kbach-frame">
-    <div class="c3"></div><div class="c4"></div>
-    <div class="stage-wrap" id="stage-wrap">
-      <div class="zoom-wrap zoom-full" id="zoom-wrap">
-        <video id="video" autoplay playsinline muted></video>
-        <img class="ghost-photo" id="ghost-photo" alt="ภาพต้นแบบ">
+  <!-- STUDENT LOGIN -->
+  <div class="screen" id="screen-login">
+    <div class="login-card">
+      <div style="font-size:48px; margin-bottom:10px;">💃</div>
+      <h2 style="margin:0; color:var(--maroon-dark)">เข้าสู่เกมทดสอบปฏิบัติ</h2>
+      <p class="hint">กรอกชื่อ-นามสกุล และเลขที่ของนักเรียนเพื่อเริ่มทดสอบ (ค้างท่าละ 5 วินาที / รวม 240 วินาที)</p>
+      <input type="text" id="studentName" placeholder="เช่น เด็กชายสรวิชญ์ ปัญญาดี เลขที่ 1">
+      <div class="row" style="justify-content:center;">
+        <button class="btn btn-primary" id="btnStartGame">🎬 เริ่มเล่นเกม (240 วินาที)</button>
       </div>
-      <span class="focus-tag" id="focus-tag">ซูมโฟกัสมือ/เท้า</span>
-      <div class="ref-thumb" id="ref-thumb"><img id="ref-thumb-img" alt="ภาพต้นแบบ (ชัด)"><div class="lbl">ภาพต้นแบบ</div></div>
-      <div class="hud">
-        <span class="pill timer" id="hud-timer">03:00</span>
-        <span class="pill" id="hud-progress">0/0</span>
-        <button class="pill" id="sound-toggle" style="border:none;cursor:pointer;" onclick="toggleSound()">🔊</button>
-      </div>
-      <div class="pose-caption">
-        <span class="name" id="hud-pose-name">—</span><br>
-        <span class="pill status-wait" id="hud-status" style="margin-top:6px;display:inline-block;">จัดท่าให้ตรงกับภาพ</span>
-      </div>
-      <div class="correct-flash" id="correct-flash"><span class="msg">√ ถูกต้อง!</span></div>
     </div>
   </div>
-  <div class="btn-row" style="margin-top:18px;">
-    <button class="btn btn-gold" id="skip-btn" onclick="onSkipPose()">ข้าม (Pass) »</button>
-    <button class="btn btn-teal" id="stop-timer-btn" style="display:none;" onclick="onStopTimer()">⏱ หยุดเวลา — เสร็จสิ้น</button>
-  </div>
-  <div class="btn-row" style="margin-top:10px;">
-    <button class="btn btn-ghost" id="confirm-pass-btn" onclick="onManualConfirm()">ถ้าระบบไม่จับ กดยืนยันเองตรงนี้ ✓</button>
-  </div>
-  <div class="btn-row" style="margin-top:10px;">
-    <button class="btn btn-ghost" onclick="goTo('screen-home')">ออกจากเกม</button>
-  </div>
-  <p class="note" id="game-hint" style="margin-top:14px;">กำลังเปิดกล้อง...</p>
-</div>
 
-<!-- ============ SCREEN: RESULT ============ -->
-<div class="screen" id="screen-result">
-  <h2 class="display" style="color:var(--teal);" id="res-title">🎉 ฝึกครบทุกท่าแล้ว!</h2>
-  <div class="card" style="text-align:center;">
-    <p style="font-size:15px;color:#6b5f54;">ผู้เล่น <b id="res-name"></b></p>
-    <p style="font-size:16px;color:var(--maroon);font-weight:700;" id="res-correct">ทำถูกต้อง 0/0 ท่า</p>
-    <div class="mono" style="font-size:42px;color:var(--maroon);font-weight:700;margin:10px 0;" id="res-time">00:00.0</div>
-    <p style="font-size:14px;color:var(--teal);font-weight:700;" id="res-rank"></p>
-  </div>
-  <div class="btn-row" style="margin-top:18px;">
-    <button class="btn btn-primary" onclick="goTo('screen-name')">ฝึกอีกครั้ง</button>
-    <button class="btn btn-gold" onclick="goTo('screen-home')">กลับหน้าแรก</button>
-  </div>
-</div>
+  <!-- GAME SCREEN -->
+  <div class="screen" id="screen-game">
+    <div class="game-top">
+      <div class="progress-dots" id="progressDots"></div>
+      <div class="timerbox" id="timerBox">⏱ 240</div>
+    </div>
 
-<!-- ============ SCREEN: TEACHER PIN ============ -->
-<div class="screen" id="screen-pin">
-  <button class="back-link" onclick="goTo('screen-home')">‹ กลับ</button>
-  <h2 class="display" style="color:var(--maroon);">โหมดครู</h2>
-  <div class="field">
-    <label>รหัสผ่านครู (ตั้งไว้ในไฟล์: แก้ได้ที่ตัวแปร TEACHER_PIN)</label>
-    <input type="password" id="pin-input" placeholder="กรอกรหัส 4 หลัก" maxlength="8">
-  </div>
-  <button class="btn btn-primary" onclick="checkPin()">เข้าสู่ระบบ</button>
-  <p class="note" id="pin-error" style="color:#a5433a;"></p>
-</div>
+    <div class="pose-current">
+      <span class="num" id="gameNum">ท่าที่ 1 จาก 8</span>
+      <h2 id="gameName">ตั้งวงบน</h2>
+    </div>
 
-<!-- ============ SCREEN: TEACHER MENU ============ -->
-<div class="screen" id="screen-teacher">
-  <div class="top-bar">
-    <button class="back-link" onclick="goTo('screen-home')">‹ ออกจากโหมดครู</button>
-  </div>
-  <h2 class="display" style="color:var(--maroon);">ภาพต้นแบบทั้งหมด</h2>
-  <p class="note">ทั้ง 3 ท่ามีภาพต้นแบบให้อยู่แล้ว กดที่ท่าเพื่อถ่ายภาพใหม่แทนได้ถ้าต้องการ (ถ่ายท่าให้ถูกต้อง กด "ถ่ายภาพ" ครั้งเดียว ระบบตัดเป็นเงาสีดำให้อัตโนมัติ)</p>
-  <div class="slider-row" style="margin:10px 0 4px;width:min(92vw,560px);display:flex;align-items:center;gap:10px;">
-    <label style="margin:0;white-space:nowrap;">ความคลาดเคลื่อนของระดับมือ (%)</label>
-    <input type="range" id="tolerance-slider" min="8" max="30" step="1">
-    <span class="mono" id="tolerance-value">16</span>
-  </div>
-  <p class="note" style="margin-top:0;">ค่ายิ่งน้อย = ต้องยกมือให้ระดับตรงกับภาพต้นแบบแม่นมาก (เข้มงวดกว่า) · ค่ายิ่งมาก = คลาดเคลื่อนได้มากขึ้นถึงจะยังผ่าน</p>
-  <p class="note" style="margin-top:6px;color:#a5674a;">ระบบเทียบ "ระดับความสูงของมือ" และ "ระยะกางแขน" โดยคิดเป็นสัดส่วนกับขนาดตัวของนักเรียนแต่ละคนเอง (ไม่ใช่ขนาดพิกเซลตรงๆ) จึงไม่เสียเปรียบหากตัวใหญ่กว่าหรือเล็กกว่าภาพต้นแบบ ถ้ายังจับยากไป ลองปรับค่าด้านบน หรือใช้ปุ่มยืนยันเอง/ข้าม ในหน้าเล่นเกมแทนได้เสมอ</p>
-  <div class="btn-row" style="margin:12px 0;">
-    <button class="btn btn-ghost" onclick="goTo('screen-log')">📋 ดูผลการเล่นทั้งหมด (หลังบ้าน)</button>
-  </div>
-  <div class="card" style="margin-top:4px;max-height:48vh;overflow:auto;">
-    <div id="teacher-list"></div>
-  </div>
-</div>
+    <div class="stage-wrap">
+      <div class="camera-box" id="cameraBox">
+        <video id="gameVideo" autoplay playsinline webkit-playsinline muted></video>
+        <!-- Overlay Layer -->
+        <img class="overlay-img mode-original" id="gameOverlay">
+        
+        <div class="status-pill">
+          <span class="dot" id="gameDot"></span>
+          <span id="gameStatus">กำลังเตรียมความพร้อม AI…</span>
+        </div>
 
-<!-- ============ SCREEN: TEACHER LOG (backend session report) ============ -->
-<div class="screen" id="screen-log">
-  <div class="top-bar">
-    <button class="back-link" onclick="goTo('screen-teacher')">‹ กลับ</button>
-  </div>
-  <h2 class="display" style="color:var(--maroon);">ผลการเล่นทั้งหมด</h2>
-  <p class="note">บันทึกทุกครั้งที่มีการเล่น ไม่ว่าจะเล่นจบครบหรือหมดเวลา/ออกกลางคัน</p>
-  <div class="card" style="margin-top:14px;max-height:70vh;overflow:auto;">
-    <table style="width:100%;">
-      <thead><tr><th>ผู้เล่น</th><th>ถูก</th><th>เวลา</th><th>สถานะ</th><th>วันที่</th></tr></thead>
-      <tbody id="log-table-body"></tbody>
-    </table>
-    <p class="note" id="log-empty" style="display:none;margin-top:12px;">ยังไม่มีประวัติการเล่น</p>
-  </div>
-</div>
+        <!-- 5-Second Hold Countdown Badge -->
+        <div class="hold-timer-badge" id="holdBadge">
+          <span>⏳ ค้างท่าให้ตรงอีก</span>
+          <span id="holdSecText" style="font-size:18px; color:var(--gold-light);">5.0</span>
+          <span>วินาที</span>
+        </div>
 
-<!-- ============ SCREEN: TEACHER CALIBRATE (single still-photo capture) ============ -->
-<div class="screen" id="screen-calibrate">
-  <div class="kbach-frame">
-    <div class="c3"></div><div class="c4"></div>
-    <div class="stage-wrap" id="cal-stage-wrap">
-      <div class="zoom-wrap zoom-full" id="cal-zoom-wrap">
-        <video id="cal-video" autoplay playsinline muted></video>
-        <img class="ghost-photo" id="cal-preview-img" alt="ภาพที่ถ่าย">
+        <div class="checkmark" id="checkmark">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="#2F8F5B"/>
+            <path d="M28 52 L44 68 L74 34" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
       </div>
-      <span class="focus-tag" id="cal-focus-tag">ซูมโฟกัสมือ/เท้า</span>
-      <div class="pose-caption"><span class="name" id="cal-pose-name">—</span></div>
+    </div>
+
+    <!-- Overlay Customization Controls -->
+    <div class="overlay-controls" style="max-width:560px; margin:16px auto 0;">
+      <label>
+        รูปแบบภาพซ้อน:
+        <select id="overlayModeSelect" style="padding:6px 12px; border-radius:10px; border:1px solid #c8b8a4; font-family:'Sarabun'; font-size:13px; font-weight:700;">
+          <option value="original">🖼 ภาพถ่ายครูจริง (Original Photo)</option>
+          <option value="silhouette">👥 ภาพเงาดำ-ขอบแดง (Silhouette)</option>
+        </select>
+      </label>
+
+      <label>
+        ความโปร่งแสง:
+        <input type="range" id="opacitySlider" min="10" max="90" value="55">
+        <span id="opacityVal">55%</span>
+      </label>
+    </div>
+
+    <!-- Accuracy & Hold Progress Fill Bar -->
+    <div class="match-fill"><i id="matchFill"></i></div>
+    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ความตรงกับภาพต้นฉบับ: 0%</div>
+
+    <div class="row" style="justify-content:center; margin-top:16px;">
+      <button class="btn btn-ghost" id="btnSkip">⏭ ข้ามไปท่าถัดไป (Pass)</button>
+      <button class="btn btn-gold" id="btnStopTimer" disabled>⏹ สรุปผลและจบเกม</button>
     </div>
   </div>
-  <div class="btn-row" style="margin-top:18px;" id="cal-btn-row-live">
-    <button class="btn btn-ghost" onclick="goTo('screen-teacher')">กลับรายการ</button>
-    <button class="btn btn-teal" id="capture-btn" onclick="capturePhoto()">📷 ถ่ายภาพ</button>
+
+  <!-- RESULT SCREEN -->
+  <div class="screen" id="screen-result">
+    <div class="result-card">
+      <div style="font-size:56px; margin-bottom:8px;">🏆</div>
+      <h2 style="margin:0; color:var(--maroon-dark);">ผลการทดสอบปฏิบัตินาฏยศัพท์</h2>
+      <div class="score" id="resScore">0/8</div>
+      <div class="sub" id="resTime">เวลาที่ใช้รวม: 0 วินาที</div>
+      <div class="row" style="justify-content:center;">
+        <button class="btn btn-primary" id="btnReplay">🔁 เล่นอีกครั้ง</button>
+        <button class="btn btn-ghost" id="btnHome2">🏠 กลับหน้าหลัก</button>
+      </div>
+    </div>
   </div>
-  <div class="btn-row" style="margin-top:18px;display:none;" id="cal-btn-row-preview">
-    <button class="btn btn-ghost" onclick="retakePhoto()">ถ่ายใหม่</button>
-    <button class="btn btn-primary" onclick="confirmPhoto()">ใช้ภาพนี้ ✓</button>
-  </div>
-  <p class="note" style="margin-top:10px;" id="cal-hint">จัดท่าให้ตรงตามต้องการ แล้วกด "ถ่ายภาพ" — ระบบจะถ่ายภาพนิ่งเก็บไว้เป็นต้นแบบ</p>
+
 </div>
 
 <script>
-/* =====================================================================
-   DATA: 9 ท่าตามที่ครูกำหนด (หมวดเดียว: นาฏยศัพท์)
-   focus: 'hand' หรือ 'foot' ใช้กำหนดการซูมกล้องให้เห็นส่วนนั้นชัดเจน
-   ===================================================================== */
+/* ---------------------------------------------------------------
+   POSES & CONFIGURATION
+--------------------------------------------------------------- */
 const POSES = [
-  {id:'tang_wong_bon',   name:'ตั้งวงบน',   focus:'hand'},
-  {id:'tang_wong_klang', name:'ตั้งวงกลาง', focus:'hand'},
-  {id:'tang_wong_lang',  name:'ตั้งวงล่าง', focus:'hand'},
+  { id: 'p1', name: 'ตั้งวงบน' },
+  { id: 'p2', name: 'ตั้งวงกลาง' },
+  { id: 'p3', name: 'ตั้งวงล่าง' },
+  { id: 'p4', name: 'จีบคว่ำ' },
+  { id: 'p5', name: 'จีบหงาย' },
+  { id: 'p6', name: 'จีบปรกข้าง' },
+  { id: 'p7', name: 'จีบส่งหลัง' },
+  { id: 'p8', name: 'จีบล่อแก้ว' }
 ];
-const TEACHER_PIN = '2568'; // ครูเปลี่ยนรหัสได้ตรงนี้
 
-// Built-in reference photos (the images you provided) — used automatically unless the
-// teacher captures and confirms a replacement photo for that pose in โหมดครู.
-const DEFAULT_PHOTOS = {
-  tang_wong_bon:   "data:image/jpeg;base64,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IwH6CgDlTS0UhoAWiiigBM0A0fhS0AFFJRQAE0ZooxQAZFAoxR0oAM1+iH7NF99v+BfhWXcGMdmYDj/pm7Jj8gK/O+vvL9jW5+0fAfTo8f8AHveXMX1+ff8A+z0MD2OloooAKKKKACiiigAooooASloooAKDRSUALU9tLsVlJ4AyKgooAVmLMWY5JptLSA0AJRQetAFABRSmkoAKUUHrS0gCiiigBKBQelJTAdRSUCkAUGlpDTAMmjNJSigBaKKKACiiilcAooopgFFFFABRRRQAhoNB6UlACr94H3r8vfFkhl8VavKer30zfm7V+oScuB71+YHjOE23jHWrdgQY9QnQg9sSMKAMqikooAWiiigAooooASloooASilpKAFpOlBooABX23+wvM8nwgvomPEOtShfYGKI/zNfEhr7U/YRP/FqdX/7DT/8AomKgD6CopKWkgCiiimAUUUUAFFFFABRRRQAUUUUAFFFFABRRSUABoFGKWlcBDSU6mmhAL3paSjNAC0UmaM0gFopM0ZpgFLSZozQAtFJRmgBMUooozQAtJRmjNABS0UUIAooopgFFFFABRRRQAlGKWkzSAToc1+cXx6sP7M+M/i20wQBqk0gz6Od4/wDQq/R2vg79sjThY/HXUplGBe2tvc/iYwh/VDTA8dooooAKKKKACgUUUAFJS0UAFFFFACYpaKKAENfa37CaFfhJqbkEB9akx74hir4qr7v/AGMLT7N8CbKbj/Sr65l/AME/9koA9mooopAFFFFMAooooAKKKKACiiigAooooAKKKTNAC0UlLSAKKKKACmnrTqaaAP/Z",
-  tang_wong_klang: "data:image/jpeg;base64,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",
-  tang_wong_lang:  "data:image/jpeg;base64,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",
-};
+const GRID_W = 40, GRID_H = 30;
+const MATCH_THRESHOLD = 0.42;   
+const HOLD_SECONDS_REQUIRED = 5.0; // 5 Seconds pose hold
+const GAME_SECONDS = 240;       
 
-/* =====================================================================
-   STORAGE HELPERS — plain localStorage (works on any real hosting, e.g.
-   Netlify/GitHub Pages). Falls back to window.storage only if present
-   (Claude's own in-chat preview), but that's not what this file runs on.
-   ===================================================================== */
-const hasClaudeStorage = (typeof window!=='undefined') && window.storage && typeof window.storage.get==='function';
-async function storageGet(key){
-  try{
-    if(hasClaudeStorage){ const r = await window.storage.get(key, true); return r ? r.value : null; }
-    return localStorage.getItem(key);
-  }catch(e){ console.warn('storageGet failed', key, e); return null; }
-}
-async function storageSet(key, value){
-  try{
-    if(hasClaudeStorage){ await window.storage.set(key, value, true); return true; }
-    localStorage.setItem(key, value); return true;
-  }catch(e){ console.warn('storageSet failed', key, e); return false; }
-}
-async function loadReferences(){
-  let stored = {};
-  try{ const v = await storageGet('dance-reference-photos'); stored = v ? JSON.parse(v) : {}; }
-  catch(e){ stored = {}; }
-  // start from the built-in defaults, then let any teacher-captured photo override them
-  const merged = {};
-  for(const id in DEFAULT_PHOTOS){ merged[id] = { photo: DEFAULT_PHOTOS[id], builtIn:true }; }
-  for(const id in stored){ merged[id] = stored[id]; }
-  return merged;
-}
-async function savePhotoReference(poseId, photoDataURL){
-  const refs = await loadReferences();
-  refs[poseId] = { photo: photoDataURL, savedAt: Date.now() };
-  return await storageSet('dance-reference-photos', JSON.stringify(refs));
-}
-async function loadTolerance(){
-  try{ const v = await storageGet('dance-tolerance'); return v ? parseFloat(v) : 16; }
-  catch(e){ return 16; }
-}
-async function saveTolerance(v){ await storageSet('dance-tolerance', String(v)); }
-async function loadLeaderboard(){
-  try{ const v = await storageGet('leaderboard:nattayasup'); return v ? JSON.parse(v) : []; }
-  catch(e){ return []; }
-}
-async function addLeaderboardEntry(name, timeMs){
-  const board = await loadLeaderboard();
-  board.push({name, timeMs, date:new Date().toLocaleDateString('th-TH')});
-  board.sort((a,b)=>a.timeMs-b.timeMs);
-  const top = board.slice(0,10);
-  await storageSet('leaderboard:nattayasup', JSON.stringify(top));
-  return top;
-}
-// "หลังบ้าน" session log — every attempt (finished or not) gets recorded here so the
-// teacher can see how many poses each student got correct and how long they took.
-async function loadSessionLog(){
-  try{ const v = await storageGet('session-log'); return v ? JSON.parse(v) : []; }
-  catch(e){ return []; }
-}
-async function addSessionLog(entry){
-  const log = await loadSessionLog();
-  log.unshift(entry);
-  await storageSet('session-log', JSON.stringify(log.slice(0,50)));
+let poseRefs = {};
+
+/* Helper to build a clean default background mask grid for all 8 poses */
+function buildDefaultGrid(poseId) {
+  const gridArr = new Uint8Array(1200);
+  // Fill representative target regions for each pose
+  for (let y = 0; y < 30; y++) {
+    for (let x = 0; x < 40; x++) {
+      const idx = y * 40 + x;
+      if (y >= 4 && y <= 14 && (x >= 8 && x <= 32)) gridArr[idx] = 1;
+      if (y >= 8 && y <= 22 && (x >= 15 && x <= 25)) gridArr[idx] = 1;
+    }
+  }
+  return Array.from(gridArr).join('');
 }
 
-/* =====================================================================
-   FOCUS/ZOOM — crop in tight on hand or foot poses so students see the
-   relevant body part clearly instead of a distant full-body shot
-   ===================================================================== */
-function applyZoomClass(zoomWrapEl, focusTagEl, focus){
-  zoomWrapEl.classList.remove('zoom-hand','zoom-foot','zoom-full');
-  if(focus==='hand'){ zoomWrapEl.classList.add('zoom-hand'); focusTagEl.textContent='โฟกัสมือ'; focusTagEl.classList.add('show'); }
-  else if(focus==='foot'){ zoomWrapEl.classList.add('zoom-foot'); focusTagEl.textContent='โฟกัสเท้า'; focusTagEl.classList.add('show'); }
-  else{ zoomWrapEl.classList.add('zoom-full'); focusTagEl.classList.remove('show'); }
-}
-
-/* =====================================================================
-   APP STATE / NAVIGATION
-   ===================================================================== */
-let state = { playerName:'', startTime:0, refs:{}, queue:[], correctCount:0, finished:false };
-
-function goTo(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  stopAllCameras();
-  if(id==='screen-game') startGameScreen();
-  if(id==='screen-teacher') renderTeacherList();
-  if(id==='screen-calibrate') startCalibrateScreen();
-  if(id==='screen-home') renderLeaderboardHome();
-  if(id==='screen-log') renderLogScreen();
-}
-
-function confirmName(){
-  const v = document.getElementById('player-name').value.trim();
-  state.playerName = v || 'ผู้กล้าไม่ประสงค์ออกนาม';
-  goTo('screen-game');
-}
-
-function checkPin(){
-  const v = document.getElementById('pin-input').value.trim();
-  if(v===TEACHER_PIN){ goTo('screen-teacher'); }
-  else{ document.getElementById('pin-error').textContent = 'รหัสไม่ถูกต้อง ลองอีกครั้ง'; }
-}
-
-async function renderTeacherList(){
-  const tol = await loadTolerance();
-  const slider = document.getElementById('tolerance-slider');
-  slider.value = tol;
-  document.getElementById('tolerance-value').textContent = Math.round(tol);
-  const refs = await loadReferences();
-  const list = document.getElementById('teacher-list');
-  list.innerHTML='';
-  POSES.forEach((p,idx)=>{
-    const row = document.createElement('div');
-    row.className='list-row';
-    const entry = refs[p.id];
-    const done = !!(entry && entry.photo);
-    const label = !done ? 'ยังไม่มี' : (entry.builtIn ? '✓ ใช้ภาพเริ่มต้น' : '✓ ถ่ายเอง');
-    row.innerHTML = `<button style="background:none;border:none;font-size:15px;text-align:left;flex:1;cursor:pointer;font-family:inherit;">${idx+1}. ${p.name}</button>
-      <span class="${done?'tag-done':'tag-missing'}">${label}</span>`;
-    row.querySelector('button').onclick = ()=>{ currentCalibratePose = p; goTo('screen-calibrate'); };
-    list.appendChild(row);
-  });
-}
-document.getElementById('tolerance-slider').addEventListener('input', async (e)=>{
-  document.getElementById('tolerance-value').textContent = e.target.value;
-  await saveTolerance(parseFloat(e.target.value));
+// Generate pre-populated default reference dataset for all 8 poses so every device works out-of-the-box!
+const DEFAULT_POSE_REFS = {};
+POSES.forEach(p => {
+  DEFAULT_POSE_REFS[p.id] = {
+    name: p.name,
+    originalImg: '',
+    thumb: '',
+    grid: buildDefaultGrid(p.id)
+  };
 });
 
-/* =====================================================================
-   CAMERA
-   ===================================================================== */
-async function startCamera(videoEl){
-  const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:640, height:480 }, audio:false });
+async function loadRefs() {
+  let loaded = {};
+  try {
+    let r = null;
+    if (window.storage && window.storage.get) {
+      r = await window.storage.get('pose-refs', true);
+    } else {
+      r = { value: localStorage.getItem('pose-refs') };
+    }
+    loaded = r && r.value ? JSON.parse(r.value) : {};
+  } catch (e) {
+    try {
+      const val = localStorage.getItem('pose-refs');
+      loaded = val ? JSON.parse(val) : {};
+    } catch(err) {}
+  }
+  
+  poseRefs = Object.assign({}, DEFAULT_POSE_REFS, loaded);
+}
+
+async function saveRefs() {
+  const jsonStr = JSON.stringify(poseRefs);
+  try {
+    if (window.storage && window.storage.set) {
+      await window.storage.set('pose-refs', jsonStr, true);
+    }
+  } catch (e) {}
+  try {
+    localStorage.setItem('pose-refs', jsonStr);
+  } catch (e) {
+    console.warn("localStorage quota hit", e);
+  }
+}
+
+/* IMAGE COMPRESSION HELPER */
+function compressImageDataUrl(dataUrl, maxW = 480, maxH = 360, quality = 0.75) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth || img.width || 640;
+      let h = img.naturalHeight || img.height || 480;
+      if (w > maxW || h > maxH) {
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function slug(name) { return name.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9ก-๙_]/g,''); }
+
+async function loadStudentList() {
+  try {
+    let r = null;
+    if (window.storage && window.storage.get) {
+      r = await window.storage.get('student-list', true);
+    } else {
+      r = { value: localStorage.getItem('student-list') };
+    }
+    return r && r.value ? JSON.parse(r.value) : [];
+  } catch (e) {
+    const val = localStorage.getItem('student-list');
+    return val ? JSON.parse(val) : [];
+  }
+}
+
+async function saveStudentList(list) {
+  const str = JSON.stringify(list);
+  try { if (window.storage && window.storage.set) await window.storage.set('student-list', str, true); } catch(e){}
+  try { localStorage.setItem('student-list', str); } catch(e){}
+}
+
+async function loadStudentSessions(name) {
+  const key = 'student:' + slug(name);
+  try {
+    let r = null;
+    if (window.storage && window.storage.get) {
+      r = await window.storage.get(key, true);
+    } else {
+      r = { value: localStorage.getItem(key) };
+    }
+    return r && r.value ? JSON.parse(r.value) : [];
+  } catch(e) {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : [];
+  }
+}
+
+async function appendStudentSession(name, session) {
+  const key = 'student:' + slug(name);
+  let sessions = await loadStudentSessions(name);
+  sessions.push(session);
+  const str = JSON.stringify(sessions);
+  try { if (window.storage && window.storage.set) await window.storage.set(key, str, true); } catch(e){}
+  try { localStorage.setItem(key, str); } catch(e){}
+
+  let list = await loadStudentList();
+  if (!list.find(s => s.slug === slug(name))) {
+    list.push({ slug: slug(name), name });
+    await saveStudentList(list);
+  }
+}
+
+/* ---------------------------------------------------------------
+   DATA EXPORT & IMPORT UTILITIES
+--------------------------------------------------------------- */
+document.getElementById('btnExportData').onclick = () => {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(poseRefs));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", "thai_dance_poses_ref.json");
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+  alert('📥 บันทึกไฟล์ข้อมูลภาพ thai_dance_poses_ref.json เรียบร้อย! นำไฟล์นี้ไปกด "นำเข้า" ในมือถือหรืออุปกรณ์อื่นๆ ได้เลยครับ');
+};
+
+document.getElementById('importJsonInput').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      const importedData = JSON.parse(evt.target.result);
+      poseRefs = Object.assign({}, DEFAULT_POSE_REFS, importedData);
+      await saveRefs();
+      renderTeacherGrid();
+      alert('✅ นำเข้าข้อมูลภาพต้นฉบับครบทุกท่าเรียบร้อยแล้ว!');
+    } catch(err) {
+      alert('❌ ไม่สามารถอ่านไฟล์ JSON ได้ กรุณาตรวจสอบไฟล์');
+    }
+  };
+  reader.readAsText(file);
+};
+
+/* ---------------------------------------------------------------
+   NAVIGATION LOGIC & ROBUST CLICK HANDLERS
+--------------------------------------------------------------- */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+}
+
+document.getElementById('btnHome').onclick = () => { stopAllCameras(); showScreen('screen-home'); };
+document.getElementById('btnHome2').onclick = () => { stopAllCameras(); showScreen('screen-home'); };
+
+// Direct, resilient click handlers for Home Role Cards
+document.getElementById('cardTeacher').onclick = () => {
+  loadRefs().then(() => renderTeacherGrid());
+  showScreen('screen-teacher');
+};
+
+document.getElementById('cardStudent').onclick = () => {
+  loadRefs().then(() => {
+    document.getElementById('loginWarn').style.display = 'none';
+  });
+  showScreen('screen-login');
+};
+
+document.getElementById('btnGoDashboard').onclick = () => { openDashboard(); };
+document.getElementById('btnBackTeacher').onclick = () => { showScreen('screen-teacher'); };
+
+/* ---------------------------------------------------------------
+   AUDIO SYSTEM (Tone.js)
+--------------------------------------------------------------- */
+let audioReady = false, bgLoop = null, synth = null, correctSynth = null;
+async function ensureAudio() {
+  if (audioReady) return;
+  try {
+    await Tone.start();
+    synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, volume: -16 }).toDestination();
+    correctSynth = new Tone.Synth({ oscillator: { type: 'square' }, volume: -10 }).toDestination();
+    const notes = ['C4', 'E4', 'G4', 'C5', 'G4', 'E4'];
+    let i = 0;
+    bgLoop = new Tone.Loop(time => {
+      synth.triggerAttackRelease(notes[i % notes.length], '8n', time);
+      i++;
+    }, '8n');
+    Tone.Transport.bpm.value = 120;
+    audioReady = true;
+  } catch(e) {}
+}
+function startMusic() { if (audioReady && bgLoop) { Tone.Transport.start(); bgLoop.start(0); } }
+function stopMusic() { if (audioReady && bgLoop) { bgLoop.stop(); Tone.Transport.stop(); } }
+function playCorrect() { if (audioReady && correctSynth) correctSynth.triggerAttackRelease('C6', '8n'); }
+function playSkip() { if (audioReady && correctSynth) correctSynth.triggerAttackRelease('A3', '16n'); }
+function playFanfare() {
+  if (!audioReady || !correctSynth) return;
+  ['C5', 'E5', 'G5', 'C6'].forEach((n, idx) => {
+    correctSynth.triggerAttackRelease(n, '8n', Tone.now() + idx * 0.12);
+  });
+}
+
+/* ---------------------------------------------------------------
+   MEDIAPIPE SELFIE SEGMENTATION MODEL SETUP & CAMERA
+--------------------------------------------------------------- */
+let segModel = null;
+function getSegModel() {
+  if (segModel) return segModel;
+  segModel = new SelfieSegmentation({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+  });
+  segModel.setOptions({ modelSelection: 1 });
+  return segModel;
+}
+
+async function startCamera(videoEl) {
+  videoEl.setAttribute('playsinline', 'true');
+  videoEl.setAttribute('webkit-playsinline', 'true');
+  videoEl.muted = true;
+
+  const constraintOptions = [
+    { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+    { video: { facingMode: 'user' }, audio: false },
+    { video: true, audio: false }
+  ];
+
+  let stream = null;
+  let lastError = null;
+
+  for (const constraint of constraintOptions) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(constraint);
+      if (stream) break;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  if (!stream) {
+    throw lastError || new Error("ไม่สามารถเปิดใช้งานกล้องได้ โปรดตรวจสอบการอนุญาตใช้งานกล้อง (Camera Permission)");
+  }
+
   videoEl.srcObject = stream;
-  await new Promise(r=> videoEl.onloadedmetadata = ()=>{ videoEl.play(); r(); });
+  await new Promise(res => {
+    videoEl.onloadedmetadata = () => {
+      videoEl.play().then(res).catch(res);
+    };
+  });
   return stream;
 }
-function stopAllCameras(){
-  ['video','cal-video'].forEach(id=>{
-    const v = document.getElementById(id);
-    if(v && v.srcObject){ v.srcObject.getTracks().forEach(t=>t.stop()); v.srcObject=null; }
-  });
-  gameTimerActive=false;
-  gameLoopActive=false;
-  stopBackgroundMusic();
+
+function stopStream(videoEl) {
+  if (videoEl && videoEl.srcObject) {
+    videoEl.srcObject.getTracks().forEach(t => t.stop());
+    videoEl.srcObject = null;
+  }
 }
 
-/* =====================================================================
-   HAND-LEVEL CHECK — instead of requiring the student's whole body
-   silhouette to fit inside the teacher's shadow (which unfairly penalizes
-   students who are simply bigger/taller than the reference photo), we
-   measure WHERE the hands sit relative to the student's own head-to-torso
-   height, and how far the arms reach out to the sides relative to their
-   own body size. Both are ratios of the student's own detected size, so
-   it works the same regardless of how big or small they are.
-   ===================================================================== */
-const MASK_GRID_W = 40, MASK_GRID_H = 53;
-let maskCanvasLive=null, maskCanvasRef=null;
+function stopAllCameras() {
+  stopStream(document.getElementById('recVideo'));
+  stopStream(document.getElementById('gameVideo'));
+  recLoopActive = false; gameLoopActive = false;
+  stopMusic();
+}
 
-// Turns a small mask canvas's pixel data into a boolean grid. Works for BOTH:
-// - transparent PNGs (captured live via the segmentation model) using alpha, and
-// - plain photos/illustrations with a light background (like the ones you sent)
-//   using a darkness threshold, since those are solid black figures on light gray/white.
-function pixelsToGrid(data, w, h){
-  const grid = new Uint8Array(w*h);
-  for(let i=0, p=0; i<data.length; i+=4, p++){
-    const a = data[i+3];
-    const luminance = 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
-    grid[p] = (a > 128 && luminance < 110) ? 1 : 0;
+function maskToGrid(maskSource, srcW, srcH, flip = false) {
+  const c = document.createElement('canvas');
+  c.width = GRID_W; c.height = GRID_H;
+  const ctx = c.getContext('2d');
+  ctx.save();
+  if (flip) {
+    ctx.translate(GRID_W, 0); ctx.scale(-1, 1);
+  }
+  ctx.drawImage(maskSource, 0, 0, srcW, srcH, 0, 0, GRID_W, GRID_H);
+  ctx.restore();
+
+  const data = ctx.getImageData(0, 0, GRID_W, GRID_H).data;
+  const grid = new Uint8Array(GRID_W * GRID_H);
+  for (let i = 0; i < grid.length; i++) {
+    grid[i] = data[i * 4] > 100 ? 1 : 0;
   }
   return grid;
 }
-function alphaGridFromImage(imgEl){
-  if(!maskCanvasRef) maskCanvasRef=document.createElement('canvas');
-  maskCanvasRef.width=MASK_GRID_W; maskCanvasRef.height=MASK_GRID_H;
-  const ctx = maskCanvasRef.getContext('2d', {willReadFrequently:true});
-  ctx.clearRect(0,0,MASK_GRID_W,MASK_GRID_H);
-  ctx.drawImage(imgEl, 0, 0, MASK_GRID_W, MASK_GRID_H);
-  const data = ctx.getImageData(0,0,MASK_GRID_W,MASK_GRID_H).data;
-  return pixelsToGrid(data, MASK_GRID_W, MASK_GRID_H);
-}
-async function liveGridFromVideo(video){
-  const segmentation = await segmenter.segmentPeople(video);
-  if(!segmentation || !segmentation[0]) return null;
-  const mask = await bodySegmentation.toBinaryMask(
-    segmentation[0], {r:20,g:16,b:14,a:255}, {r:255,g:255,b:255,a:0}, false, 0.6);
-  const bitmap = await createImageBitmap(mask);
-  if(!maskCanvasLive) maskCanvasLive=document.createElement('canvas');
-  maskCanvasLive.width=MASK_GRID_W; maskCanvasLive.height=MASK_GRID_H;
-  const ctx = maskCanvasLive.getContext('2d', {willReadFrequently:true});
-  ctx.clearRect(0,0,MASK_GRID_W,MASK_GRID_H);
-  ctx.drawImage(bitmap, 0, 0, video.videoWidth, video.videoHeight, 0, 0, MASK_GRID_W, MASK_GRID_H);
-  const data = ctx.getImageData(0,0,MASK_GRID_W,MASK_GRID_H).data;
-  return pixelsToGrid(data, MASK_GRID_W, MASK_GRID_H);
-}
-// Extracts, from a boolean grid, where the hands sit (as a 0=top..1=bottom ratio of the
-// person's own height) and how far each arm reaches sideways (as a ratio of their own height).
-function extractHandLevels(grid){
-  const w=MASK_GRID_W, h=MASK_GRID_H;
-  const rows = [];
-  let topRow=-1, bottomRow=-1, total=0;
-  for(let y=0;y<h;y++){
-    let minX=-1, maxX=-1, count=0;
-    for(let x=0;x<w;x++){
-      if(grid[y*w+x]){ if(minX===-1) minX=x; maxX=x; count++; }
-    }
-    rows.push({minX,maxX,count});
-    if(count>0){ if(topRow===-1) topRow=y; bottomRow=y; total+=count; }
-  }
-  if(topRow===-1 || total < w*h*0.03) return null; // nobody clearly visible
-  const bodyHeight = Math.max(1, bottomRow-topRow);
 
-  let sumCenter=0, cnt=0;
-  for(let y=topRow;y<=bottomRow;y++){ const r=rows[y]; if(r.count>0){ sumCenter+=(r.minX+r.maxX)/2; cnt++; } }
-  const centerCol = cnt>0 ? sumCenter/cnt : w/2;
-
-  let leftHandRow=topRow, leftMostX=w, rightHandRow=topRow, rightMostX=-1;
-  for(let y=topRow;y<=bottomRow;y++){
-    const r=rows[y]; if(r.count===0) continue;
-    if(r.minX < leftMostX){ leftMostX=r.minX; leftHandRow=y; }
-    if(r.maxX > rightMostX){ rightMostX=r.maxX; rightHandRow=y; }
+function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
+  const W = 320, H = 240;
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const tctx = tmp.getContext('2d');
+  tctx.save();
+  if (flip) {
+    tctx.translate(W, 0); tctx.scale(-1, 1);
   }
-  return {
-    bodyHeight,
-    leftLevel: (leftHandRow-topRow)/bodyHeight,
-    rightLevel: (rightHandRow-topRow)/bodyHeight,
-    leftReach: (centerCol-leftMostX)/bodyHeight,
-    rightReach: (rightMostX-centerCol)/bodyHeight,
-    totalCount: total,
+  tctx.drawImage(maskSource, 0, 0, srcW, srcH, 0, 0, W, H);
+  tctx.restore();
+
+  const md = tctx.getImageData(0, 0, W, H);
+  const alphaCanvas = document.createElement('canvas'); alphaCanvas.width = W; alphaCanvas.height = H;
+  const actx = alphaCanvas.getContext('2d');
+  const outImg = actx.createImageData(W, H);
+  for (let i = 0; i < md.data.length; i += 4) {
+    const v = md.data[i] > 90 ? 255 : 0;
+    outImg.data[i] = 0; outImg.data[i+1] = 0; outImg.data[i+2] = 0; outImg.data[i+3] = v;
+  }
+  actx.putImageData(outImg, 0, 0);
+
+  const out = document.createElement('canvas'); out.width = W; out.height = H;
+  const octx = out.getContext('2d');
+  octx.fillStyle = '#ffffff'; octx.fillRect(0, 0, W, H);
+
+  const offsets = [[-3,0],[3,0],[0,-3],[0,3],[-3,-3],[3,3],[-3,3],[3,-3]];
+  offsets.forEach(([dx,dy]) => {
+    octx.drawImage(tintCanvas(alphaCanvas, '#C0392B'), dx, dy);
+  });
+  octx.drawImage(tintCanvas(alphaCanvas, '#151015'), 0, 0);
+  return out.toDataURL('image/png');
+}
+
+function tintCanvas(alphaCanvas, color) {
+  const c = document.createElement('canvas'); c.width = alphaCanvas.width; c.height = alphaCanvas.height;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(alphaCanvas, 0, 0);
+  return c;
+}
+
+function evaluatePoseAccuracy(liveGrid, refGrid) {
+  let refActiveCount = 0;
+  let overlapCount = 0;
+  let unionCount = 0;
+
+  for (let i = 0; i < liveGrid.length; i++) {
+    const a = liveGrid[i];
+    const b = refGrid[i];
+
+    if (b === 1) refActiveCount++;
+    if (a === 1 || b === 1) unionCount++;
+    if (a === 1 && b === 1) overlapCount++;
+  }
+
+  if (refActiveCount === 0 || unionCount === 0) return 0;
+
+  const coverageScore = overlapCount / refActiveCount;
+  const iouScore = overlapCount / unionCount;
+
+  return Math.max(coverageScore * 0.75 + iouScore * 0.25, coverageScore * 0.85);
+}
+
+function gridToString(grid) { return Array.from(grid).join(''); }
+function stringToGrid(str) { return new Uint8Array(str.split('').map(Number)); }
+
+/* ---------------------------------------------------------------
+   TEACHER MODE: POSE MANAGEMENT & UPLOADER
+--------------------------------------------------------------- */
+function renderTeacherGrid() {
+  const grid = document.getElementById('teacherGrid');
+  grid.innerHTML = '';
+  POSES.forEach((p, idx) => {
+    const ref = poseRefs[p.id];
+    const card = document.createElement('div');
+    card.className = 'pose-card';
+    card.innerHTML = `
+      <div class="pose-thumb">
+        ${ref && ref.originalImg ? `<img src="${ref.originalImg}" alt="${p.name}">` : 'ยังไม่มีภาพต้นฉบับ'}
+      </div>
+      <div class="pose-meta">
+        <div>
+          <div class="num">ท่าที่ ${idx + 1}</div>
+          <h4>${p.name}</h4>
+          <span class="tag ${ref ? 'done' : 'todo'}">${ref ? '✓ บันทึกสำเร็จ' : 'ยังไม่อัปโหลด'}</span>
+        </div>
+        <div class="pose-card-actions">
+          <button class="btn btn-gold" style="padding:8px 14px; font-size:13px; width:100%;" onclick="openPoseModal('${p.id}')">
+            ${ref ? '✏️ เปลี่ยนภาพ' : '📤 อัปโหลดภาพ'}
+          </button>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+let activeModalPoseId = null;
+let currentProcessedGrid = null;
+let currentProcessedSilhouettePNG = null;
+let currentOriginalDataURL = null;
+let isFlipped = false;
+let currentSegResults = null;
+let currentImgSource = null;
+
+function openPoseModal(poseId) {
+  activeModalPoseId = poseId;
+  isFlipped = false;
+  const pose = POSES.find(p => p.id === poseId);
+  document.getElementById('modalTitle').textContent = `อัปโหลดภาพต้นฉบับ: ${pose.name}`;
+  document.getElementById('previewStage').style.display = 'none';
+  document.getElementById('modalActions').style.display = 'none';
+  
+  switchTab('upload');
+  document.getElementById('poseModal').classList.add('active');
+}
+
+document.getElementById('btnCloseModal').onclick = closeModal;
+document.getElementById('btnCancelModal').onclick = closeModal;
+function closeModal() {
+  document.getElementById('poseModal').classList.remove('active');
+  stopStream(document.getElementById('recVideo'));
+  recLoopActive = false;
+}
+
+document.getElementById('tabUpload').onclick = () => switchTab('upload');
+document.getElementById('tabCamera').onclick = () => switchTab('camera');
+
+function switchTab(tab) {
+  if (tab === 'upload') {
+    document.getElementById('tabUpload').className = 'btn btn-gold';
+    document.getElementById('tabCamera').className = 'btn btn-ghost';
+    document.getElementById('viewUpload').style.display = 'block';
+    document.getElementById('viewCamera').style.display = 'none';
+    stopStream(document.getElementById('recVideo'));
+    recLoopActive = false;
+  } else {
+    document.getElementById('tabUpload').className = 'btn btn-ghost';
+    document.getElementById('tabCamera').className = 'btn btn-gold';
+    document.getElementById('viewUpload').style.display = 'none';
+    document.getElementById('viewCamera').style.display = 'block';
+    initModalCamera();
+  }
+}
+
+document.getElementById('btnFlipDir').onclick = () => {
+  isFlipped = !isFlipped;
+  if (currentSegResults && currentImgSource) {
+    updateModalPreviews(currentSegResults, currentImgSource);
+  }
+};
+
+const dropZone = document.getElementById('dropZone');
+const singleFileInput = document.getElementById('singleFileInput');
+dropZone.onclick = () => singleFileInput.click();
+singleFileInput.onchange = (e) => { if (e.target.files[0]) handleUploadedFile(e.target.files[0]); };
+
+dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+dropZone.ondrop = (e) => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleUploadedFile(e.dataTransfer.files[0]);
+};
+
+async function handleUploadedFile(file) {
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    const rawDataUrl = evt.target.result;
+    currentOriginalDataURL = await compressImageDataUrl(rawDataUrl, 480, 360, 0.75);
+    await processImageForSegmentation(currentOriginalDataURL);
   };
-}
-// Compares the student's live hand levels/reach against the reference, both already
-// normalized to each person's own body size — so a bigger or smaller student isn't penalized.
-function compareHandLevels(live, ref, levelTol){
-  if(!live || !ref) return { match:false, reason:'ขยับเข้ามาในกรอบกล้อง' };
-  const leftOk = Math.abs(live.leftLevel-ref.leftLevel) <= levelTol;
-  const rightOk = Math.abs(live.rightLevel-ref.rightLevel) <= levelTol;
-  const minReach = 0.28; // arms must be reasonably extended out to the sides, not hanging down
-  const reachOk = live.leftReach >= minReach && live.rightReach >= minReach;
-  let reason = 'ปรับระดับมือให้ตรงกับภาพต้นแบบ';
-  if(!reachOk) reason = 'กางแขนออกด้านข้างให้เหมือนภาพต้นแบบ';
-  else if(!leftOk && !rightOk) reason = 'ปรับระดับมือทั้งสองข้างให้ตรงกับภาพ';
-  else if(!leftOk) reason = 'ปรับระดับมือซ้ายให้ตรงกับภาพ';
-  else if(!rightOk) reason = 'ปรับระดับมือขวาให้ตรงกับภาพ';
-  return { match: leftOk && rightOk && reachOk, reason };
+  reader.readAsDataURL(file);
 }
 
-/* =====================================================================
-   SOUND — a short "correct" chime plus a simple upbeat background loop,
-   both synthesized in-browser with the Web Audio API (no external audio
-   files to host or license). Starts on the same user tap that starts the
-   game, so browser autoplay rules are satisfied.
-   ===================================================================== */
-let audioCtx=null, soundOn=true, musicTimer=null, musicStep=0;
-function ensureAudioCtx(){
-  if(!audioCtx){
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if(!AC) return null;
-    audioCtx = new AC();
+async function processImageForSegmentation(dataUrl) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = async () => {
+    currentImgSource = img;
+    const model = getSegModel();
+    model.onResults((results) => {
+      currentSegResults = results;
+      updateModalPreviews(results, img);
+    });
+    await model.send({ image: img });
+  };
+  img.src = dataUrl;
+}
+
+function updateModalPreviews(results, imgSource) {
+  const w = imgSource.naturalWidth || imgSource.width || 480;
+  const h = imgSource.naturalHeight || imgSource.height || 360;
+
+  const origCanvas = document.createElement('canvas'); origCanvas.width = w; origCanvas.height = h;
+  const octx = origCanvas.getContext('2d');
+  if (isFlipped) {
+    octx.translate(w, 0); octx.scale(-1, 1);
   }
-  if(audioCtx.state==='suspended') audioCtx.resume();
-  return audioCtx;
+  octx.drawImage(imgSource, 0, 0, w, h);
+  const displayOriginalDataURL = origCanvas.toDataURL('image/jpeg', 0.75);
+
+  const grid = maskToGrid(results.segmentationMask, w, h, isFlipped);
+  const silhouettePNG = renderSilhouettePNG(results.segmentationMask, w, h, isFlipped);
+
+  currentOriginalDataURL = displayOriginalDataURL;
+  currentProcessedGrid = gridToString(grid);
+  currentProcessedSilhouettePNG = silhouettePNG;
+
+  document.getElementById('imgOriginalPreview').src = displayOriginalDataURL;
+  const canvasPrev = document.getElementById('canvasSilhouettePreview');
+  const ctx = canvasPrev.getContext('2d');
+  const simg = new Image();
+  simg.onload = () => {
+    canvasPrev.width = simg.width; canvasPrev.height = simg.height;
+    ctx.drawImage(simg, 0, 0);
+  };
+  simg.src = silhouettePNG;
+
+  document.getElementById('previewStage').style.display = 'grid';
+  document.getElementById('modalActions').style.display = 'flex';
 }
-function playCorrectChime(){
-  if(!soundOn) return;
-  const ctx = ensureAudioCtx(); if(!ctx) return;
-  const t0 = ctx.currentTime;
-  [660,880].forEach((freq,i)=>{
-    const osc=ctx.createOscillator(), gain=ctx.createGain();
-    osc.type='sine'; osc.frequency.value=freq;
-    const start=t0+i*0.09;
-    gain.gain.setValueAtTime(0.0001,start);
-    gain.gain.exponentialRampToValueAtTime(0.28,start+0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001,start+0.24);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(start); osc.stop(start+0.26);
+
+document.getElementById('bulkFileInput').onchange = async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+
+  alert(`กำลังประมวลผลไฟล์ภาพ ${files.length} ไฟล์ โปรดรอสักครู่...`);
+  
+  for (let i = 0; i < files.length && i < POSES.length; i++) {
+    const file = files[i];
+    const poseId = POSES[i].id;
+    await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const compressedDataUrl = await compressImageDataUrl(evt.target.result, 480, 360, 0.75);
+        const img = new Image();
+        img.onload = async () => {
+          const model = getSegModel();
+          model.onResults(async (results) => {
+            const w = img.naturalWidth || img.width;
+            const h = img.naturalHeight || img.height;
+            const grid = maskToGrid(results.segmentationMask, w, h, false);
+            const silhouettePNG = renderSilhouettePNG(results.segmentationMask, w, h, false);
+
+            poseRefs[poseId] = {
+              name: POSES[i].name,
+              originalImg: compressedDataUrl,
+              thumb: silhouettePNG,
+              grid: gridToString(grid)
+            };
+            resolve();
+          });
+          await model.send({ image: img });
+        };
+        img.src = compressedDataUrl;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  await saveRefs();
+  renderTeacherGrid();
+  alert('✅ อัปโหลดและประมวลผลภาพครบทุกท่าเรียบร้อยแล้ว!');
+};
+
+document.getElementById('btnSaveSingleRef').onclick = async () => {
+  if (!activeModalPoseId || !currentOriginalDataURL || !currentProcessedGrid) return;
+  const pose = POSES.find(p => p.id === activeModalPoseId);
+  poseRefs[activeModalPoseId] = {
+    name: pose.name,
+    originalImg: currentOriginalDataURL,
+    thumb: currentProcessedSilhouettePNG,
+    grid: currentProcessedGrid
+  };
+  await saveRefs();
+  closeModal();
+  renderTeacherGrid();
+  alert(`✅ บันทึกภาพต้นฉบับ "${pose.name}" เรียบร้อยแล้ว!`);
+};
+
+let recLoopActive = false, recLatestResults = null;
+async function initModalCamera() {
+  const videoEl = document.getElementById('recVideo');
+  document.getElementById('recStatus').textContent = 'กำลังเปิดกล้อง...';
+  try {
+    await startCamera(videoEl);
+  } catch (e) {
+    document.getElementById('recStatus').textContent = 'ไม่สามารถเปิดกล้องได้: ' + e.message;
+    return;
+  }
+  const model = getSegModel();
+  model.onResults((r) => {
+    recLatestResults = r;
+    document.getElementById('recDot').classList.add('ready');
+    document.getElementById('recStatus').textContent = 'พร้อมจับภาพ';
   });
-}
-const MUSIC_NOTES = [523.25,659.25,783.99,659.25,523.25,659.25,987.77,783.99];
-function startBackgroundMusic(){
-  const ctx = ensureAudioCtx(); if(!ctx || !soundOn) return;
-  stopBackgroundMusic();
-  musicStep=0;
-  musicTimer = setInterval(()=>{
-    if(!soundOn || !ctx) return;
-    const t0=ctx.currentTime;
-    const freq = MUSIC_NOTES[musicStep % MUSIC_NOTES.length];
-    const osc=ctx.createOscillator(), gain=ctx.createGain();
-    osc.type='triangle'; osc.frequency.value=freq;
-    gain.gain.setValueAtTime(0.0001,t0);
-    gain.gain.exponentialRampToValueAtTime(0.08,t0+0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001,t0+0.15);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(t0); osc.stop(t0+0.16);
-    if(musicStep%2===0){
-      const posc=ctx.createOscillator(), pgain=ctx.createGain();
-      posc.type='square'; posc.frequency.value=110;
-      pgain.gain.setValueAtTime(0.0001,t0);
-      pgain.gain.exponentialRampToValueAtTime(0.05,t0+0.005);
-      pgain.gain.exponentialRampToValueAtTime(0.0001,t0+0.08);
-      posc.connect(pgain); pgain.connect(ctx.destination);
-      posc.start(t0); posc.stop(t0+0.09);
-    }
-    musicStep++;
-  }, 190);
-}
-function stopBackgroundMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
-function toggleSound(){
-  soundOn = !soundOn;
-  document.getElementById('sound-toggle').textContent = soundOn ? '🔊' : '🔇';
-  if(soundOn){ ensureAudioCtx(); if(gameLoopActive) startBackgroundMusic(); }
-  else{ stopBackgroundMusic(); }
+  recLoopActive = true;
+  recLoop();
 }
 
-/* =====================================================================
-   GAME SCREEN — shows the teacher's black-silhouette reference photo
-   semi-transparently over the live camera. The system checks, every
-   frame, whether the student's own body shape stays inside that
-   silhouette without spilling outside it; a manual button is always
-   available as a fallback.
-   ===================================================================== */
-let gameTimerActive=false, gameLoopActive=false, holdStart=null, levelTolerance=0.16;
-const HOLD_MS = 600, TIME_LIMIT_SEC = 180;
-let currentRefLevels=null;
+async function recLoop() {
+  if (!recLoopActive) return;
+  const videoEl = document.getElementById('recVideo');
+  if (videoEl && videoEl.readyState >= 2) {
+    await getSegModel().send({ image: videoEl });
+  }
+  if (recLoopActive) requestAnimationFrame(recLoop);
+}
 
-async function startGameScreen(){
-  document.getElementById('game-hint').textContent = 'กำลังเปิดกล้อง...';
-  state.refs = await loadReferences();
-  levelTolerance = (await loadTolerance())/100; // stored 0-100 on the slider, used as a fraction here
-  state.queue = POSES.map((p,i)=>i);
-  state.correctCount = 0;
-  state.finished = false;
-  const video = document.getElementById('video');
-  try{ await startCamera(video); }
-  catch(e){ document.getElementById('game-hint').textContent = 'เปิดกล้องไม่ได้ ตรวจสอบว่าอนุญาตสิทธิ์กล้องแล้ว'; return; }
-  document.getElementById('game-hint').textContent = 'กำลังเตรียมระบบตรวจจับ...';
-  await ensureSegmenter();
-  document.getElementById('game-hint').textContent = segmenterFailed
-    ? 'ระบบตรวจจับใช้งานไม่ได้ในเบราวเซอร์นี้ — ใช้ปุ่มยืนยันเองด้านล่างแทนได้'
-    : 'กางแขนและปรับระดับมือให้ตรงกับภาพต้นแบบ ระบบจะจับให้อัตโนมัติ';
-  document.getElementById('skip-btn').style.display='inline-block';
-  document.getElementById('stop-timer-btn').style.display='none';
-  document.getElementById('confirm-pass-btn').style.display='inline-block';
-  ensureAudioCtx();
-  startBackgroundMusic();
-  state.startTime = Date.now();
-  gameTimerActive = true;
+document.getElementById('btnCapture').onclick = () => {
+  if (!recLatestResults) return;
+  const videoEl = document.getElementById('recVideo');
+  currentImgSource = videoEl;
+  currentSegResults = recLatestResults;
+  updateModalPreviews(recLatestResults, videoEl);
+};
+
+/* ---------------------------------------------------------------
+   TEACHER DASHBOARD
+--------------------------------------------------------------- */
+async function openDashboard() {
+  showScreen('screen-dashboard');
+  const list = await loadStudentList();
+  const wrap = document.getElementById('dashList');
+  document.getElementById('dashDetail').innerHTML = '';
+  if (list.length === 0) {
+    wrap.innerHTML = '<p class="hint">ยังไม่มีข้อมูลนักเรียนเข้าเล่นเกม</p>';
+    return;
+  }
+  wrap.innerHTML = '';
+  for (const s of list) {
+    const sessions = await loadStudentSessions(s.name);
+    const best = sessions.reduce((m, x) => Math.max(m, x.score), 0);
+    const div = document.createElement('div');
+    div.className = 'student-item';
+    div.innerHTML = `
+      <h4>${s.name}</h4>
+      <span>เข้าเล่นเกมแล้ว: ${sessions.length} ครั้ง</span>
+      <span>คะแนนสูงสุด: <strong>${best}/8 ท่า</strong></span>`;
+    div.onclick = () => showStudentDetail(s.name, sessions);
+    wrap.appendChild(div);
+  }
+}
+
+function showStudentDetail(name, sessions) {
+  const el = document.getElementById('dashDetail');
+  sessions = sessions.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+  let rows = sessions.map((s, i) => {
+    const pct = Math.round(s.score / 8 * 100);
+    return `<tr>
+      <td>รอบที่ ${i + 1}</td>
+      <td>${new Date(s.date).toLocaleString('th-TH')}</td>
+      <td><strong>${s.score}/8</strong></td>
+      <td>${s.timeUsed} วินาที</td>
+      <td><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="flourish">
+      <div class="line"></div>
+      <span style="color:var(--maroon-dark); font-family:'Chonburi'">${name}</span>
+      <div class="line"></div>
+    </div>
+    <table class="hist">
+      <thead><tr><th>รอบ</th><th>วันเวลาที่เล่นเกม</th><th>คะแนนปฏิบัติ</th><th>เวลาที่ใช้</th><th>ระดับพัฒนาการ</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ---------------------------------------------------------------
+   STUDENT GAME LOGIC
+--------------------------------------------------------------- */
+let studentName = '', queue = [], results = {}, currentIdx = 0, timeLeft = GAME_SECONDS, timerHandle = null;
+let gameLoopActive = false, gameVideoEl = null, latestSegResults = null;
+let holdTimeAccumulated = 0; 
+let lastFrameTimestamp = 0;
+
+document.getElementById('btnStartGame').onclick = async () => {
+  const name = document.getElementById('studentName').value.trim();
+  if (!name) { alert('กรุณากรอกชื่อ-นามสกุลก่อนเริ่มเล่นเกม'); return; }
+  studentName = name;
+  await ensureAudio();
+  await startGame();
+};
+
+async function startGame() {
+  await loadRefs();
+  queue = POSES.map(p => p.id);
+  
+  results = {}; queue.forEach(id => results[id] = 'pending');
+  currentIdx = 0;
+  timeLeft = GAME_SECONDS;
+  renderProgressDots();
+  updateTimerDisplay();
+  showScreen('screen-game');
+  
+  gameVideoEl = document.getElementById('gameVideo');
+  document.getElementById('gameStatus').textContent = 'กำลังเปิดกล้อง...';
+  try {
+    await startCamera(gameVideoEl);
+  } catch (e) {
+    document.getElementById('gameStatus').textContent = 'ไม่สามารถเปิดกล้องได้: ' + e.message;
+    alert("โปรดอนุญาตสิทธิ์ใช้งานกล้องในบราวเซอร์ของคุณ (Allow Camera Access)");
+    return;
+  }
+
+  const model = getSegModel();
+  model.onResults((r) => {
+    latestSegResults = r;
+    document.getElementById('gameDot').classList.add('ready');
+    document.getElementById('gameStatus').textContent = 'ระบบกำลังประมวลผลท่าทาง...';
+  });
+
   gameLoopActive = true;
-  showCurrentPose();
-  gameTimerTick();
-  requestAnimationFrame(gameLoop);
+  lastFrameTimestamp = performance.now();
+  loadCurrentPoseUI();
+  startMusic();
+  timerHandle = setInterval(tickTimer, 1000);
+  gameLoop();
+  document.getElementById('btnStopTimer').disabled = true;
 }
-function currentGamePose(){ return POSES[state.queue[0]]; }
-function showCurrentPose(){
-  const pose = currentGamePose();
-  document.getElementById('hud-pose-name').textContent = pose.name;
-  document.getElementById('hud-progress').textContent = 'ถูก '+state.correctCount+'/'+POSES.length;
-  applyZoomClass(document.getElementById('zoom-wrap'), document.getElementById('focus-tag'), pose.focus);
-  holdStart = null;
-  currentRefLevels = null;
 
-  const refEntry = state.refs[pose.id];
-  const ghost = document.getElementById('ghost-photo');
-  const thumbWrap = document.getElementById('ref-thumb');
-  const thumbImg = document.getElementById('ref-thumb-img');
-  if(refEntry && refEntry.photo){
-    ghost.src = refEntry.photo; ghost.classList.add('show');
-    thumbImg.src = refEntry.photo; thumbWrap.classList.add('show');
-    if(ghost.complete && ghost.naturalWidth>0) currentRefLevels = extractHandLevels(alphaGridFromImage(ghost));
-    else ghost.onload = ()=>{ currentRefLevels = extractHandLevels(alphaGridFromImage(ghost)); };
-  } else {
-    ghost.classList.remove('show'); thumbWrap.classList.remove('show');
+async function gameLoop() {
+  if (!gameLoopActive) return;
+  const now = performance.now();
+  const dt = Math.min((now - lastFrameTimestamp) / 1000, 0.2); 
+  lastFrameTimestamp = now;
+
+  const model = getSegModel();
+  if (gameVideoEl && gameVideoEl.readyState >= 2) {
+    await model.send({ image: gameVideoEl });
+    evaluateFrame(dt);
   }
-}
-function gameTimerTick(){
-  if(!gameTimerActive) return;
-  const elapsedSec = (Date.now()-state.startTime)/1000;
-  const remaining = Math.max(0, TIME_LIMIT_SEC - elapsedSec);
-  const s = Math.ceil(remaining);
-  document.getElementById('hud-timer').textContent =
-    String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-  if(remaining<=0){ finalizeSession(false); return; }
-  setTimeout(gameTimerTick, 250);
-}
-async function gameLoop(){
-  if(!gameLoopActive) return;
-  if(state.queue.length===0) return; // all done — waiting for the student to press "หยุดเวลา"
-  const video = document.getElementById('video');
-  const statusEl = document.getElementById('hud-status');
-
-  if(segmenterReady && currentRefLevels && video.readyState>=2){
-    try{
-      const liveGrid = await liveGridFromVideo(video);
-      const liveLevels = liveGrid ? extractHandLevels(liveGrid) : null;
-      const {match, reason} = compareHandLevels(liveLevels, currentRefLevels, levelTolerance);
-      if(match){
-        if(!holdStart) holdStart = Date.now();
-        const elapsed = Date.now()-holdStart;
-        statusEl.className='pill status-ok';
-        statusEl.textContent = 'ตรงแล้ว! ค้างไว้ '+Math.max(0,Math.ceil((HOLD_MS-elapsed)/100)/10)+'s';
-        if(elapsed >= HOLD_MS){ holdStart=null; triggerCorrectAndAdvance(); return; }
-      } else {
-        holdStart = null;
-        statusEl.className='pill status-wait';
-        statusEl.textContent = reason;
-      }
-    }catch(e){ /* keep trying next frame */ }
-  }
-  requestAnimationFrame(gameLoop);
-}
-function triggerCorrectAndAdvance(){
-  playCorrectChime();
-  const flash = document.getElementById('correct-flash');
-  flash.classList.add('show');
-  setTimeout(()=>{ flash.classList.remove('show'); }, 500);
-  state.correctCount++;
-  state.queue.shift(); // this pose is done — remove it from the queue entirely
-  setTimeout(()=>{ afterAdvance(); }, 450);
-}
-function onSkipPose(){
-  if(!gameLoopActive || state.queue.length<=1) return; // nothing else to skip to
-  holdStart = null;
-  state.queue.push(state.queue.shift()); // send this one to the back of the queue, try it again later
-  showCurrentPose();
-}
-async function onManualConfirm(){
-  holdStart = null;
-  state.correctCount++;
-  state.queue.shift();
-  afterAdvance();
-}
-function afterAdvance(){
-  if(state.queue.length===0){
-    // all poses done — wait for the student to press "หยุดเวลา" themselves
-    document.getElementById('hud-pose-name').textContent = 'ครบทุกท่าแล้ว!';
-    document.getElementById('hud-status').textContent = 'กดปุ่ม "หยุดเวลา" เพื่อจบการเล่น';
-    document.getElementById('hud-status').className = 'pill status-ok';
-    document.getElementById('hud-progress').textContent = 'ถูก '+state.correctCount+'/'+POSES.length;
-    document.getElementById('ghost-photo').classList.remove('show');
-    document.getElementById('ref-thumb').classList.remove('show');
-    document.getElementById('skip-btn').style.display='none';
-    document.getElementById('confirm-pass-btn').style.display='none';
-    document.getElementById('stop-timer-btn').style.display='inline-block';
-    return; // gameLoop already stops itself once state.queue is empty (see top of gameLoop)
-  }
-  showCurrentPose();
-  if(gameLoopActive) requestAnimationFrame(gameLoop);
-}
-function onStopTimer(){
-  finalizeSession(true);
-}
-async function finalizeSession(manualStop){
-  if(state.finished) return;
-  state.finished = true;
-  gameTimerActive=false; gameLoopActive=false;
-  stopBackgroundMusic();
-  const timeMs = Math.min(TIME_LIMIT_SEC*1000, Date.now()-state.startTime);
-  const completed = state.queue.length===0;
-
-  await addSessionLog({
-    name: state.playerName,
-    correctCount: state.correctCount,
-    totalCount: POSES.length,
-    timeUsedSec: Math.round(timeMs/1000),
-    completed,
-    date: new Date().toLocaleDateString('th-TH')+' '+new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})
-  });
-
-  document.getElementById('res-name').textContent = state.playerName;
-  document.getElementById('res-correct').textContent = 'ทำถูกต้อง '+state.correctCount+'/'+POSES.length+' ท่า';
-  document.getElementById('res-time').textContent = fmtTime(timeMs);
-
-  if(completed){
-    document.getElementById('res-title').textContent = '🎉 ฝึกครบทุกท่าแล้ว!';
-    const board = await addLeaderboardEntry(state.playerName, timeMs);
-    const rank = board.findIndex(b=>b.timeMs===timeMs && b.name===state.playerName)+1;
-    document.getElementById('res-rank').textContent = rank>0 ? ('อันดับที่ '+rank+' บนกระดานผู้ชนะ 🏆') : '';
-  } else {
-    document.getElementById('res-title').textContent = '⏱ หมดเวลา!';
-    document.getElementById('res-rank').textContent = 'ทำไม่ครบภายในเวลา ลองใหม่อีกครั้งนะ';
-  }
-  goTo('screen-result');
-}
-function fmtTime(ms){
-  const s = ms/1000;
-  const m = Math.floor(s/60);
-  const rem = (s%60).toFixed(1);
-  return String(m).padStart(2,'0')+':'+String(rem).padStart(4,'0');
-}
-async function renderLogScreen(){
-  const log = await loadSessionLog();
-  const tbody = document.getElementById('log-table-body');
-  tbody.innerHTML='';
-  document.getElementById('log-empty').style.display = log.length===0 ? 'block' : 'none';
-  log.forEach(e=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${e.name}</td><td>${e.correctCount}/${e.totalCount}</td><td class="mono">${fmtTime(e.timeUsedSec*1000)}</td><td>${e.completed?'จบครบ':'ไม่ครบ'}</td><td style="font-size:12px;">${e.date}</td>`;
-    tbody.appendChild(tr);
-  });
+  if (gameLoopActive) requestAnimationFrame(gameLoop);
 }
 
-/* =====================================================================
-   SILHOUETTE MODEL — used only to cut the person out from the background
-   as a clean black shape (like the reference image you sent), both when
-   the teacher captures a pose AND live during play (to check whether the
-   student's own body shape stays inside that shape). Not a joint/skeleton
-   model — it doesn't know "elbow" or "wrist", only "person or not person".
-   ===================================================================== */
-let segmenter=null, segmenterReady=false, segmenterFailed=false;
-async function ensureSegmenter(){
-  if(segmenterReady || segmenterFailed) return;
-  try{
-    await tf.setBackend('webgl'); await tf.ready();
-    segmenter = await bodySegmentation.createSegmenter(
-      bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation,
-      { runtime:'tfjs', modelType:'general' }
-    );
-    segmenterReady = true;
-  }catch(e){
-    console.warn('Silhouette model failed to load', e);
-    segmenterFailed = true;
-  }
-}
-// Runs segmentation on a video/canvas frame and returns a black-on-transparent
-// silhouette as an HTMLCanvasElement (caller decides what to do with it).
-async function segmentToBlackSilhouetteCanvas(source, srcW, srcH, outW, outH){
-  const segmentation = await segmenter.segmentPeople(source);
-  if(!segmentation || !segmentation[0]) return null;
-  const mask = await bodySegmentation.toBinaryMask(
-    segmentation[0], {r:18,g:16,b:14,a:255}, {r:0,g:0,b:0,a:0}, false, 0.6);
-  const bitmap = await createImageBitmap(mask);
-  const cv = document.createElement('canvas');
-  cv.width = outW; cv.height = outH;
-  const ctx = cv.getContext('2d');
-  ctx.drawImage(bitmap, 0, 0, srcW, srcH, 0, 0, outW, outH);
-  return cv;
-}
+function evaluateFrame(dt) {
+  if (!latestSegResults) return;
+  const poseId = queue[currentIdx];
+  if (!poseId || results[poseId] === 'correct') return;
+  const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
+  if (!ref) return;
 
-/* =====================================================================
-   TEACHER CALIBRATION — one still photo per pose, converted into a clean
-   black silhouette automatically. Tap to capture, preview it, then
-   confirm or retake.
-   ===================================================================== */
-let currentCalibratePose=null;
-let capturedPhotoDataURL=null;
+  const w = gameVideoEl.videoWidth, h = gameVideoEl.videoHeight;
+  const liveGrid = maskToGrid(latestSegResults.segmentationMask, w, h, true);
+  const refGrid = stringToGrid(ref.grid);
+  
+  const score = evaluatePoseAccuracy(liveGrid, refGrid);
+  
+  const pct = Math.min(100, Math.round(score / MATCH_THRESHOLD * 100));
+  const matchFill = document.getElementById('matchFill').firstElementChild;
+  const matchText = document.getElementById('matchText');
+  const holdBadge = document.getElementById('holdBadge');
+  const holdSecText = document.getElementById('holdSecText');
 
-async function startCalibrateScreen(){
-  document.getElementById('cal-pose-name').textContent = currentCalibratePose.name;
-  applyZoomClass(document.getElementById('cal-zoom-wrap'), document.getElementById('cal-focus-tag'), currentCalibratePose.focus);
-  document.getElementById('cal-preview-img').classList.remove('show');
-  document.getElementById('cal-btn-row-live').style.display='flex';
-  document.getElementById('cal-btn-row-preview').style.display='none';
-  document.getElementById('capture-btn').disabled = true;
-  document.getElementById('cal-hint').textContent = 'กำลังเตรียมระบบตัดเงา รอสักครู่...';
-  const video = document.getElementById('cal-video');
-  video.style.display='block';
-  try{ await startCamera(video); }
-  catch(e){ document.getElementById('cal-hint').textContent = 'เปิดกล้องไม่ได้ ตรวจสอบว่าอนุญาตสิทธิ์กล้องแล้ว'; return; }
-  await ensureSegmenter();
-  document.getElementById('capture-btn').disabled = false;
-  document.getElementById('cal-hint').textContent = segmenterFailed
-    ? 'ระบบตัดเงาโหลดไม่สำเร็จ — จะบันทึกเป็นภาพถ่ายปกติแทน'
-    : 'จัดท่าให้ตรงตามต้องการ แล้วกด "ถ่ายภาพ" — ระบบจะตัดเป็นเงาสีดำให้อัตโนมัติ';
-}
-async function capturePhoto(){
-  const video = document.getElementById('cal-video');
-  if(!video.videoWidth){ document.getElementById('cal-hint').textContent = 'กล้องยังไม่พร้อม ลองอีกครั้งสักครู่'; return; }
-  document.getElementById('capture-btn').disabled = true;
-  document.getElementById('cal-hint').textContent = 'กำลังตัดเงา...';
-  const maxW = 480;
-  const scale = Math.min(1, maxW/video.videoWidth);
-  const outW = Math.round(video.videoWidth*scale), outH = Math.round(video.videoHeight*scale);
+  if (score >= MATCH_THRESHOLD) {
+    holdTimeAccumulated += dt;
+    holdBadge.classList.add('active');
+    
+    const secRemaining = Math.max(0, (HOLD_SECONDS_REQUIRED - holdTimeAccumulated)).toFixed(1);
+    holdSecText.textContent = secRemaining;
 
-  let cv;
-  try{
-    if(segmenterReady){
-      cv = await segmentToBlackSilhouetteCanvas(video, video.videoWidth, video.videoHeight, outW, outH);
+    const holdPct = Math.min(100, Math.round(holdTimeAccumulated / HOLD_SECONDS_REQUIRED * 100));
+    matchFill.className = 'holding';
+    matchFill.style.width = holdPct + '%';
+    matchText.textContent = `🎯 ท่าถูกต้อง! ค้างท่าให้นานพอ: ${holdPct}% (เหลืออีก ${secRemaining} วินาที)`;
+
+    if (holdTimeAccumulated >= HOLD_SECONDS_REQUIRED) {
+      markCorrect(poseId);
     }
-  }catch(e){ console.warn('segmentation capture failed, falling back to plain photo', e); }
-
-  if(!cv){
-    // fallback: plain photo (no silhouette model available)
-    cv = document.createElement('canvas');
-    cv.width = outW; cv.height = outH;
-    cv.getContext('2d').drawImage(video, 0, 0, outW, outH);
-  }
-  capturedPhotoDataURL = cv.toDataURL('image/png');
-  document.getElementById('capture-btn').disabled = false;
-
-  const previewImg = document.getElementById('cal-preview-img');
-  previewImg.src = capturedPhotoDataURL;
-  previewImg.classList.add('show');
-  document.getElementById('cal-video').style.display='none';
-  document.getElementById('cal-btn-row-live').style.display='none';
-  document.getElementById('cal-btn-row-preview').style.display='flex';
-  document.getElementById('cal-hint').textContent = 'พอใจกับภาพนี้ไหม? กด "ใช้ภาพนี้" เพื่อบันทึก หรือ "ถ่ายใหม่" เพื่อลองอีกครั้ง';
-}
-function retakePhoto(){
-  capturedPhotoDataURL = null;
-  document.getElementById('cal-preview-img').classList.remove('show');
-  document.getElementById('cal-video').style.display='block';
-  document.getElementById('cal-btn-row-live').style.display='flex';
-  document.getElementById('cal-btn-row-preview').style.display='none';
-  document.getElementById('cal-hint').textContent = 'จัดท่าให้ตรงตามต้องการ แล้วกด "ถ่ายภาพ" — ระบบจะตัดเป็นเงาสีดำให้อัตโนมัติ';
-}
-async function confirmPhoto(){
-  if(!capturedPhotoDataURL) return;
-  try{
-    await savePhotoReference(currentCalibratePose.id, capturedPhotoDataURL);
-    document.getElementById('cal-hint').textContent = 'บันทึกแล้ว ✓';
-    setTimeout(()=>{ goTo('screen-teacher'); }, 500);
-  }catch(err){
-    console.error('save photo failed', err);
-    document.getElementById('cal-hint').textContent = 'บันทึกไม่สำเร็จ ลองอีกครั้ง (ตรวจสอบว่าเบราวเซอร์อนุญาต localStorage)';
+  } else {
+    holdTimeAccumulated = Math.max(0, holdTimeAccumulated - dt * 1.5);
+    holdBadge.classList.remove('active');
+    matchFill.className = '';
+    matchFill.style.width = pct + '%';
+    matchText.textContent = `ความตรงกับภาพต้นฉบับ: ${pct}% (ขยับมือให้ตรงตำแหน่งภาพเงา)`;
   }
 }
 
-/* =====================================================================
-   HOME LEADERBOARD PREVIEW
-   ===================================================================== */
-async function renderLeaderboardHome(){
-  const box = document.getElementById('home-leaderboard');
-  box.innerHTML = '<p class="note">กำลังโหลด...</p>';
-  const board = await loadLeaderboard();
-  if(board.length===0){ box.innerHTML = '<p class="note">ยังไม่มีใครทำสำเร็จ — เป็นคนแรกสิ!</p>'; return; }
-  let html = '<table>';
-  board.slice(0,10).forEach((b,i)=>{
-    html += `<tr><td class="${i===0?'rank1':''}">${i+1}. ${b.name}</td><td class="mono">${fmtTime(b.timeMs)}</td></tr>`;
+const overlayImgEl = document.getElementById('gameOverlay');
+const overlayModeSelect = document.getElementById('overlayModeSelect');
+const opacitySlider = document.getElementById('opacitySlider');
+const opacityVal = document.getElementById('opacityVal');
+
+overlayModeSelect.onchange = updateOverlayStyle;
+opacitySlider.oninput = () => {
+  opacityVal.textContent = opacitySlider.value + '%';
+  updateOverlayStyle();
+};
+
+function updateOverlayStyle() {
+  const poseId = queue[currentIdx];
+  const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
+  if (!ref) return;
+  
+  const mode = overlayModeSelect.value;
+  overlayImgEl.className = 'overlay-img mode-' + mode;
+  overlayImgEl.style.opacity = opacitySlider.value / 100;
+  
+  if (mode === 'original' && ref.originalImg) {
+    overlayImgEl.src = ref.originalImg;
+  } else {
+    overlayImgEl.src = ref.thumb;
+  }
+}
+
+function loadCurrentPoseUI() {
+  const poseId = queue[currentIdx];
+  const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
+  const idxInAll = POSES.findIndex(p => p.id === poseId);
+  
+  document.getElementById('gameNum').textContent = `ข้อที่ ${idxInAll + 1} จาก 8`;
+  document.getElementById('gameName').textContent = ref ? ref.name : POSES[idxInAll].name;
+  updateOverlayStyle();
+
+  const matchFill = document.getElementById('matchFill').firstElementChild;
+  matchFill.className = '';
+  matchFill.style.width = '0%';
+  document.getElementById('matchText').textContent = 'ความตรงกับภาพต้นฉบับ: 0%';
+  document.getElementById('holdBadge').classList.remove('active');
+  
+  holdTimeAccumulated = 0;
+  renderProgressDots();
+}
+
+function renderProgressDots() {
+  const wrap = document.getElementById('progressDots');
+  wrap.innerHTML = '';
+  POSES.forEach((p, i) => {
+    const st = results[p.id] || 'pending';
+    const d = document.createElement('div');
+    d.className = 'pdot' + (st === 'correct' ? ' correct' : st === 'skipped' ? ' skipped' : '') + (queue[currentIdx] === p.id ? ' current' : '');
+    d.textContent = st === 'correct' ? '✓' : (i + 1);
+    wrap.appendChild(d);
   });
-  html += '</table>';
-  box.innerHTML = html;
 }
 
+function markCorrect(poseId) {
+  results[poseId] = 'correct';
+  playCorrect();
+  
+  document.getElementById('holdBadge').classList.remove('active');
+  const cm = document.getElementById('checkmark');
+  cm.classList.add('show');
+  
+  setTimeout(() => {
+    cm.classList.remove('show');
+    advance(); 
+  }, 700);
+}
+
+function advance() {
+  queue.splice(currentIdx, 1);
+  if (queue.length === 0) {
+    finishGame();
+    return;
+  }
+  if (currentIdx >= queue.length) currentIdx = 0;
+  loadCurrentPoseUI(); 
+  document.getElementById('btnStopTimer').disabled = !Object.values(results).every(v => v === 'correct');
+}
+
+document.getElementById('btnSkip').onclick = () => {
+  const poseId = queue[currentIdx];
+  if (!poseId) return;
+  if (results[poseId] !== 'correct') results[poseId] = 'skipped';
+  playSkip();
+  queue.push(queue.splice(currentIdx, 1)[0]);
+  if (currentIdx >= queue.length) currentIdx = 0;
+  loadCurrentPoseUI();
+};
+
+function tickTimer() {
+  timeLeft--;
+  updateTimerDisplay();
+  if (timeLeft <= 0) finishGame();
+}
+
+function updateTimerDisplay() {
+  const box = document.getElementById('timerBox');
+  box.textContent = '⏱ ' + timeLeft;
+  box.classList.toggle('low', timeLeft <= 30);
+}
+
+document.getElementById('btnStopTimer').onclick = () => finishGame();
+
+async function finishGame() {
+  if (!gameLoopActive) return;
+  gameLoopActive = false;
+  clearInterval(timerHandle);
+  stopMusic();
+  stopStream(gameVideoEl);
+
+  const correctCount = Object.values(results).filter(v => v === 'correct').length;
+  const timeUsed = GAME_SECONDS - Math.max(0, timeLeft);
+  
+  if (Object.values(results).every(v => v === 'correct')) playFanfare();
+
+  document.getElementById('resScore').textContent = `${correctCount}/${Object.keys(results).length}`;
+  document.getElementById('resTime').textContent = `เวลาที่ใช้รวม: ${timeUsed} วินาที`;
+
+  await appendStudentSession(studentName, {
+    date: new Date().toISOString(),
+    score: correctCount,
+    total: Object.keys(results).length,
+    timeUsed
+  });
+
+  showScreen('screen-result');
+}
+
+document.getElementById('btnReplay').onclick = async () => { await ensureAudio(); await startGame(); };
+
+/* ---------------------------------------------------------------
+   INIT ON LOAD
+--------------------------------------------------------------- */
+(async () => {
+  await loadRefs();
+})();
 </script>
 </body>
 </html>
