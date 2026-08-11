@@ -209,14 +209,15 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: inline-block; }
 .dot.ready { background: #34d399; box-shadow: 0 0 10px #34d399; }
 
-/* Dynamic Match Badge */
+/* Dynamic Match Badge & Hold Timer */
 .match-timer-badge {
   position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
   background: rgba(14,92,86,0.92); color: #fff; backdrop-filter: blur(8px);
   border: 2px solid var(--gold); padding: 8px 20px; border-radius: 999px;
   font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.4); transition: all 0.2s;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4); transition: all 0.2s; white-space: nowrap;
 }
+.match-timer-badge.holding { background: rgba(122,31,43,0.92); border-color: var(--gold-light); }
 
 /* --- Student Login Card --- */
 .login-card {
@@ -475,9 +476,9 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
           <span id="gameStatus">กำลังเตรียมความพร้อม AI…</span>
         </div>
 
-        <!-- Dynamic Accuracy Status Badge -->
+        <!-- Dynamic Accuracy & Hold Timer Status Badge -->
         <div class="match-timer-badge" id="holdBadge">
-          <span>🎯 ความทาบตรงเงา:</span>
+          <span>🎯 ขยับท่าให้ตรงกับเงา:</span>
           <span id="matchPctText" style="font-size:18px; color:var(--gold-light);">0%</span>
         </div>
 
@@ -509,7 +510,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
 
     <!-- Accuracy & Progress Fill Bar -->
     <div class="match-fill"><i id="matchFill"></i></div>
-    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ความตรงกับภาพต้นฉบับ: 0%</div>
+    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ความทาบตรงกับภาพต้นฉบับ: 0%</div>
 
     <div class="row" style="justify-content:center; margin-top:16px;">
       <button class="btn btn-ghost" id="btnSkip">⏭ ข้ามไปท่าถัดไป (Pass)</button>
@@ -549,8 +550,8 @@ const POSES = [
 ];
 
 const GRID_W = 40, GRID_H = 30;
-const MATCH_THRESHOLD = 0.15;       // High tolerance matching for easy triggers
 const GAME_SECONDS = 240;           // 240 seconds total game duration
+const HOLD_REQUIRED = 1.5;          // 1.5 seconds steady hold required before pass
 
 let poseRefs = {};
 
@@ -648,7 +649,7 @@ async function loadStudentList() {
 
 async function saveStudentList(list) {
   const str = JSON.stringify(list);
-  try { if (window.storage && window.storage.set) await window.storage.set('student-list', str, true); } catch(e){}
+  try { if (window.storage && window.storage.set) await window.storage.set(key, str, true); } catch(e){}
   try { localStorage.setItem('student-list', str); } catch(e){}
 }
 
@@ -757,7 +758,6 @@ function unlockAudio() {
   }
 }
 
-// Unlock Web Audio API on ANY user click or screen touch
 window.addEventListener('click', unlockAudio, { passive: true });
 window.addEventListener('touchstart', unlockAudio, { passive: true });
 
@@ -781,7 +781,7 @@ function startExcitingMusic() {
   stopExcitingMusic();
   if (!soundEnabled) return;
 
-  const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63, 293.66]; // Classic cheerful melody loop
+  const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63, 293.66];
   let step = 0;
 
   bgMusicInterval = setInterval(() => {
@@ -814,7 +814,7 @@ function playBellChime() {
   unlockAudio();
   if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
   try {
-    const freqs = [1046.50, 1318.51, 1567.98, 2093.00]; // High C6, E6, G6, C7
+    const freqs = [1046.50, 1318.51, 1567.98, 2093.00];
     freqs.forEach((freq, idx) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -926,7 +926,7 @@ function maskToGrid(maskSource, srcW, srcH, flip = false) {
   const data = ctx.getImageData(0, 0, GRID_W, GRID_H).data;
   const grid = new Uint8Array(GRID_W * GRID_H);
   for (let i = 0; i < grid.length; i++) {
-    grid[i] = data[i * 4] > 80 ? 1 : 0;
+    grid[i] = data[i * 4] > 70 ? 1 : 0;
   }
   return grid;
 }
@@ -947,7 +947,7 @@ function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
   const actx = alphaCanvas.getContext('2d');
   const outImg = actx.createImageData(W, H);
   for (let i = 0; i < md.data.length; i += 4) {
-    const v = md.data[i] > 80 ? 255 : 0;
+    const v = md.data[i] > 70 ? 255 : 0;
     outImg.data[i] = 0; outImg.data[i+1] = 0; outImg.data[i+2] = 0; outImg.data[i+3] = v;
   }
   actx.putImageData(outImg, 0, 0);
@@ -964,38 +964,46 @@ function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
   return out.toDataURL('image/png');
 }
 
-function tintCanvas(alphaCanvas, color) {
-  const c = document.createElement('canvas'); c.width = alphaCanvas.width; c.height = alphaCanvas.height;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = color; ctx.fillRect(0, 0, c.width, c.height);
-  ctx.globalCompositeOperation = 'destination-in';
-  ctx.drawImage(alphaCanvas, 0, 0);
-  return c;
+// DILATED SILHOUETTE MATCHING FOR BODY SIZE FLEXIBILITY
+function getDilatedGrid(grid, radius = 2) {
+  const out = new Uint8Array(GRID_W * GRID_H);
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      if (grid[y * GRID_W + x] === 1) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const ny = y + dy, nx = x + dx;
+            if (ny >= 0 && ny < GRID_H && nx >= 0 && nx < GRID_W) {
+              out[ny * GRID_W + nx] = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+  return out;
 }
 
-// ULTRA-FORGIVING ACTIVE SILHOUETTE ACCURACY ALGORITHM
 function evaluatePoseAccuracy(liveGrid, refGrid) {
   let refActiveCount = 0;
   let overlapCount = 0;
-  let unionCount = 0;
+
+  // Use dilated reference grid so larger body/arms match easily!
+  const dilatedRef = getDilatedGrid(refGrid, 3); // 3-pixel radius expansion
 
   for (let i = 0; i < liveGrid.length; i++) {
-    const a = liveGrid[i];
     const b = refGrid[i];
+    const db = dilatedRef[i];
+    const a = liveGrid[i];
 
     if (b === 1) refActiveCount++;
-    if (a === 1 || b === 1) unionCount++;
-    if (a === 1 && b === 1) overlapCount++;
+    if (a === 1 && db === 1) overlapCount++;
   }
 
-  // Fallback for default template
   if (refActiveCount === 0) return 0.85;
 
   const coverageScore = overlapCount / refActiveCount;
-  const iouScore = unionCount > 0 ? (overlapCount / unionCount) : 0;
-
-  // Prioritize active coverage of the target arm/silhouette
-  return Math.max(coverageScore * 0.85 + iouScore * 0.15, coverageScore);
+  return coverageScore;
 }
 
 function gridToString(grid) { return Array.from(grid).join(''); }
@@ -1305,13 +1313,14 @@ function showStudentDetail(name, sessions) {
 }
 
 /* ---------------------------------------------------------------
-   STUDENT GAME LOGIC (EASY ACCURACY MATCHING & GUARANTEED BGM)
+   STUDENT GAME LOGIC (SIZE FLEXIBILITY & 1.5s STEADY HOLD STABILIZATION)
 --------------------------------------------------------------- */
 let studentName = '', queue = [], results = {}, currentIdx = 0, timeLeft = GAME_SECONDS;
 let gameLoopActive = false, gameVideoEl = null, latestSegResults = null;
 let gameStartTimestamp = 0;
 let clockTimerInterval = null;
 let sendingFrames = false;
+let poseHoldTime = 0; // Accumulated steady hold time
 
 document.getElementById('btnStartGame').onclick = async () => {
   const name = document.getElementById('studentName').value.trim();
@@ -1330,7 +1339,7 @@ async function startGame() {
   renderProgressDots();
   showScreen('screen-game');
   
-  // 1. GUARANTEED CLOCK TIMER (100% Independent)
+  // 1. GUARANTEED CLOCK TIMER
   clearInterval(clockTimerInterval);
   gameStartTimestamp = Date.now();
   updateTimerUI();
@@ -1367,7 +1376,7 @@ async function startGame() {
 
   gameLoopActive = true;
   loadCurrentPoseUI();
-  startExcitingMusic(); // Play Music!
+  startExcitingMusic();
   
   // 4. NON-BLOCKING CAMERA FRAME TRANSMISSION
   sendingFrames = false;
@@ -1396,7 +1405,7 @@ async function sendCameraFramesLoop() {
   if (gameLoopActive) requestAnimationFrame(sendCameraFramesLoop);
 }
 
-// HIGHLY SENSITIVE & ACCURATE INSTANT POSE EVALUATION
+// FLEXIBLE SIZE MATCHING + 1.5s STEADY HOLD STABILIZATION DELAY
 function evaluatePoseResult(r) {
   if (!gameLoopActive || !r) return;
   const poseId = queue[currentIdx];
@@ -1409,20 +1418,34 @@ function evaluatePoseResult(r) {
   const refGrid = stringToGrid(ref.grid);
   
   const score = evaluatePoseAccuracy(liveGrid, refGrid);
-  // Scale display score nicely so student sees 0-100% easily
-  const displayPct = Math.min(100, Math.round(score * 250));
+  // Display scaled match score percentage (0-100%)
+  const displayPct = Math.min(100, Math.round(score * 320));
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
   const matchText = document.getElementById('matchText');
   const matchPctText = document.getElementById('matchPctText');
+  const holdBadge = document.getElementById('holdBadge');
 
   matchPctText.textContent = displayPct + '%';
   matchFill.style.width = displayPct + '%';
-  matchText.textContent = `ความทาบตรงกับภาพต้นฉบับ: ${displayPct}% (เกณฑ์ผ่าน: 35%)`;
+  matchText.textContent = `ความทาบตรงกับภาพต้นฉบับ: ${displayPct}% (เกณฑ์ผ่าน: 25%)`;
 
-  // EASY PASS TRIGGER: If student overlays arms/body reasonably near silhouette (score >= 0.15 or displayPct >= 35%), trigger "Pass"!
-  if (score >= MATCH_THRESHOLD || displayPct >= 35) {
-    markCorrect(poseId);
+  // MATCH CONDITION: Requires student to hold pose steadily aligned for 1.5 seconds!
+  if (score >= 0.12 || displayPct >= 25) {
+    poseHoldTime += 0.15; // Accumulate steady hold duration
+    const remainingHold = Math.max(0, (HOLD_REQUIRED - poseHoldTime)).toFixed(1);
+
+    holdBadge.className = 'match-timer-badge holding';
+    holdBadge.innerHTML = `⏳ ค้างท่าให้ตรงอีก <span style="font-size:18px; color:var(--gold-light);">${remainingHold}s</span>`;
+
+    if (poseHoldTime >= HOLD_REQUIRED) {
+      markCorrect(poseId);
+    }
+  } else {
+    // Reset hold time if student moves out of pose alignment
+    poseHoldTime = 0;
+    holdBadge.className = 'match-timer-badge';
+    holdBadge.innerHTML = `🎯 จัดท่าทางทาบกับเงา (${displayPct}%)`;
   }
 }
 
@@ -1467,6 +1490,7 @@ function loadCurrentPoseUI() {
   document.getElementById('matchText').textContent = 'ความทาบตรงกับภาพต้นฉบับ: 0%';
   document.getElementById('matchPctText').textContent = '0%';
   
+  poseHoldTime = 0; // Reset hold duration for new pose
   renderProgressDots();
 }
 
