@@ -258,9 +258,9 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
 .overlay-controls label { font-size: 13px; font-weight: 700; color: var(--maroon-dark); display: flex; align-items: center; gap: 8px; }
 .overlay-controls input[type="range"] { accent-color: var(--gold); width: 130px; cursor: pointer; }
 
-/* Progress bar for pose match */
-.match-fill { height: 14px; border-radius: 999px; background: #eee0c8; overflow: hidden; max-width: 560px; margin: 14px auto 6px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.12); position: relative; }
-.match-fill i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--ok)); width: 0%; transition: width 0.15s ease-out; }
+/* Dynamic Progress bar for 0% to 100% build-up */
+.match-fill { height: 16px; border-radius: 999px; background: #eee0c8; overflow: hidden; max-width: 560px; margin: 14px auto 6px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.12); position: relative; }
+.match-fill i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--teal), var(--ok)); width: 0%; transition: width 0.1s ease-out; }
 
 .checkmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
 .checkmark svg { width: 140px; height: 140px; opacity: 0; transform: scale(0.5); filter: drop-shadow(0 6px 16px rgba(47,143,91,0.5)); }
@@ -478,7 +478,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
 
         <!-- Dynamic Accuracy & Hold Timer Status Badge -->
         <div class="match-timer-badge" id="holdBadge">
-          <span>🎯 ขยับท่าให้ตรงกับเงา:</span>
+          <span>🎯 จัดท่าทางทาบกับเงา:</span>
           <span id="matchPctText" style="font-size:18px; color:var(--gold-light);">0%</span>
         </div>
 
@@ -508,9 +508,9 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
       </label>
     </div>
 
-    <!-- Accuracy & Progress Fill Bar -->
+    <!-- Accuracy & Progress Fill Bar (0% to 100%) -->
     <div class="match-fill"><i id="matchFill"></i></div>
-    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ความทาบตรงกับภาพต้นฉบับ: 0%</div>
+    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ความทาบตรงกับภาพเงา: 0%</div>
 
     <div class="row" style="justify-content:center; margin-top:16px;">
       <button class="btn btn-ghost" id="btnSkip">⏭ ข้ามไปท่าถัดไป (Pass)</button>
@@ -550,8 +550,7 @@ const POSES = [
 ];
 
 const GRID_W = 40, GRID_H = 30;
-const GAME_SECONDS = 240;           // 240 seconds total game duration
-const HOLD_REQUIRED = 1.5;          // 1.5 seconds steady hold required before pass
+const GAME_SECONDS = 240; // 240 seconds total game duration
 
 let poseRefs = {};
 
@@ -964,8 +963,8 @@ function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
   return out.toDataURL('image/png');
 }
 
-// DILATED SILHOUETTE MATCHING FOR BODY SIZE FLEXIBILITY
-function getDilatedGrid(grid, radius = 2) {
+// DILATED SILHOUETTE MATCHING FOR BODY SIZE FLEXIBILITY (LARGER / SMALLER BODY)
+function getDilatedGrid(grid, radius = 3) {
   const out = new Uint8Array(GRID_W * GRID_H);
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
@@ -988,8 +987,8 @@ function evaluatePoseAccuracy(liveGrid, refGrid) {
   let refActiveCount = 0;
   let overlapCount = 0;
 
-  // Use dilated reference grid so larger body/arms match easily!
-  const dilatedRef = getDilatedGrid(refGrid, 3); // 3-pixel radius expansion
+  // Use 3-pixel radius expansion to accommodate larger or smaller student bodies
+  const dilatedRef = getDilatedGrid(refGrid, 3);
 
   for (let i = 0; i < liveGrid.length; i++) {
     const b = refGrid[i];
@@ -1313,14 +1312,14 @@ function showStudentDetail(name, sessions) {
 }
 
 /* ---------------------------------------------------------------
-   STUDENT GAME LOGIC (SIZE FLEXIBILITY & 1.5s STEADY HOLD STABILIZATION)
+   STUDENT GAME LOGIC (DYNAMIC 0% ➔ 100% BUILD-UP WHILE STANDING STILL)
 --------------------------------------------------------------- */
 let studentName = '', queue = [], results = {}, currentIdx = 0, timeLeft = GAME_SECONDS;
 let gameLoopActive = false, gameVideoEl = null, latestSegResults = null;
 let gameStartTimestamp = 0;
 let clockTimerInterval = null;
 let sendingFrames = false;
-let poseHoldTime = 0; // Accumulated steady hold time
+let currentHoldProgress = 0; // Dynamic progress score accumulator from 0 to 100
 
 document.getElementById('btnStartGame').onclick = async () => {
   const name = document.getElementById('studentName').value.trim();
@@ -1405,7 +1404,7 @@ async function sendCameraFramesLoop() {
   if (gameLoopActive) requestAnimationFrame(sendCameraFramesLoop);
 }
 
-// FLEXIBLE SIZE MATCHING + 1.5s STEADY HOLD STABILIZATION DELAY
+// FLEXIBLE SIZE MATCHING + DYNAMIC 0% TO 100% BUILD-UP WHILE STANDING STILL
 function evaluatePoseResult(r) {
   if (!gameLoopActive || !r) return;
   const poseId = queue[currentIdx];
@@ -1417,33 +1416,39 @@ function evaluatePoseResult(r) {
   const liveGrid = maskToGrid(r.segmentationMask, w, h, true);
   const refGrid = stringToGrid(ref.grid);
   
-  const score = evaluatePoseAccuracy(liveGrid, refGrid);
-  // Display scaled match score percentage (0-100%)
-  const displayPct = Math.min(100, Math.round(score * 320));
+  const coverageScore = evaluatePoseAccuracy(liveGrid, refGrid);
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
   const matchText = document.getElementById('matchText');
   const matchPctText = document.getElementById('matchPctText');
   const holdBadge = document.getElementById('holdBadge');
 
-  matchPctText.textContent = displayPct + '%';
-  matchFill.style.width = displayPct + '%';
-  matchText.textContent = `ความทาบตรงกับภาพต้นฉบับ: ${displayPct}% (เกณฑ์ผ่าน: 25%)`;
+  // MATCH CONDITION: Student aligns body/hands with template (coverageScore >= 0.08)
+  if (coverageScore >= 0.08) {
+    // Standing still builds progress smoothly from 0% to 100% (~60% per second)
+    currentHoldProgress = Math.min(100, currentHoldProgress + 8.5);
+    const displayPct = Math.floor(currentHoldProgress);
 
-  // MATCH CONDITION: Requires student to hold pose steadily aligned for 1.5 seconds!
-  if (score >= 0.12 || displayPct >= 25) {
-    poseHoldTime += 0.15; // Accumulate steady hold duration
-    const remainingHold = Math.max(0, (HOLD_REQUIRED - poseHoldTime)).toFixed(1);
+    matchPctText.textContent = displayPct + '%';
+    matchFill.style.width = displayPct + '%';
+    matchText.textContent = `ความทาบตรงกับภาพเงา: ${displayPct}% (ยืนนิ่งๆ ให้ถึง 100%)`;
 
     holdBadge.className = 'match-timer-badge holding';
-    holdBadge.innerHTML = `⏳ ค้างท่าให้ตรงอีก <span style="font-size:18px; color:var(--gold-light);">${remainingHold}s</span>`;
+    holdBadge.innerHTML = `⏳ ยืนนิ่งๆ ค้างท่าทาง... <span style="font-size:18px; color:var(--gold-light);">${displayPct}%</span>`;
 
-    if (poseHoldTime >= HOLD_REQUIRED) {
+    // PASS CONDITION: Passes automatically when progress reaches 100%!
+    if (currentHoldProgress >= 100) {
       markCorrect(poseId);
     }
   } else {
-    // Reset hold time if student moves out of pose alignment
-    poseHoldTime = 0;
+    // If student moves away from pose alignment, progress drops back down towards 0%
+    currentHoldProgress = Math.max(0, currentHoldProgress - 10);
+    const displayPct = Math.floor(currentHoldProgress);
+
+    matchPctText.textContent = displayPct + '%';
+    matchFill.style.width = displayPct + '%';
+    matchText.textContent = `ความทาบตรงกับภาพเงา: ${displayPct}% (ยืนนิ่งๆ ให้ถึง 100%)`;
+
     holdBadge.className = 'match-timer-badge';
     holdBadge.innerHTML = `🎯 จัดท่าทางทาบกับเงา (${displayPct}%)`;
   }
@@ -1487,10 +1492,10 @@ function loadCurrentPoseUI() {
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
   matchFill.style.width = '0%';
-  document.getElementById('matchText').textContent = 'ความทาบตรงกับภาพต้นฉบับ: 0%';
+  document.getElementById('matchText').textContent = 'ความทาบตรงกับภาพเงา: 0%';
   document.getElementById('matchPctText').textContent = '0%';
   
-  poseHoldTime = 0; // Reset hold duration for new pose
+  currentHoldProgress = 0; // Reset progress score from 0% for new pose
   renderProgressDots();
 }
 
