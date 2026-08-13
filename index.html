@@ -1611,8 +1611,7 @@ function renderProgressDots() {
   wrap.innerHTML = '';
   POSES.forEach((p, i) => {
     const st = results[p.id] || 'pending';
-    const d = document.createElement('div');
-    d.className = 'pdot' + (st === 'correct' ? ' correct' : st === 'skipped' ? ' skipped' : '') + (queue[currentIdx] === p.id ? ' current' : '');
+    const d = document.className = 'pdot' + (st === 'correct' ? ' correct' : st === 'skipped' ? ' skipped' : '') + (queue[currentIdx] === p.id ? ' current' : '');
     d.textContent = st === 'correct' ? '✓' : (i + 1);
     wrap.appendChild(d);
   });
