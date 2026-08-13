@@ -996,6 +996,7 @@ function stopAllCameras() {
   stopExcitingMusic();
 }
 
+// MULTI-CHANNEL PIXEL DETECTOR (R, G, B, OR ALPHA > 50)
 function maskToGrid(maskSource, srcW, srcH, flip = false) {
   const c = document.createElement('canvas');
   c.width = GRID_W; c.height = GRID_H;
@@ -1010,7 +1011,11 @@ function maskToGrid(maskSource, srcW, srcH, flip = false) {
   const data = ctx.getImageData(0, 0, GRID_W, GRID_H).data;
   const grid = new Uint8Array(GRID_W * GRID_H);
   for (let i = 0; i < grid.length; i++) {
-    grid[i] = data[i * 4] > 70 ? 1 : 0;
+    const rVal = data[i * 4];
+    const gVal = data[i * 4 + 1];
+    const bVal = data[i * 4 + 2];
+    const aVal = data[i * 4 + 3];
+    grid[i] = (rVal > 50 || gVal > 50 || bVal > 50 || aVal > 50) ? 1 : 0;
   }
   return grid;
 }
@@ -1031,7 +1036,7 @@ function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
   const actx = alphaCanvas.getContext('2d');
   const outImg = actx.createImageData(W, H);
   for (let i = 0; i < md.data.length; i += 4) {
-    const v = md.data[i] > 70 ? 255 : 0;
+    const v = (md.data[i] > 50 || md.data[i+3] > 50) ? 255 : 0;
     outImg.data[i] = 0; outImg.data[i+1] = 0; outImg.data[i+2] = 0; outImg.data[i+3] = v;
   }
   actx.putImageData(outImg, 0, 0);
@@ -1057,7 +1062,7 @@ function tintCanvas(alphaCanvas, color) {
 }
 
 // ULTRA-RELIABLE SMART POSE MATCHING (GUARANTEED PASSING WHEN STUDENT STANDS IN FRONT OF CAMERA)
-function getDilatedGrid(grid, radius = 5) {
+function getDilatedGrid(grid, radius = 6) {
   const out = new Uint8Array(GRID_W * GRID_H);
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
@@ -1081,7 +1086,7 @@ function evaluatePoseAccuracy(liveGrid, refGrid) {
   let liveActiveCount = 0;
   let overlapCount = 0;
 
-  const dilatedRef = getDilatedGrid(refGrid, 5);
+  const dilatedRef = getDilatedGrid(refGrid, 6);
 
   for (let i = 0; i < liveGrid.length; i++) {
     if (refGrid[i] === 1) refActiveCount++;
@@ -1091,7 +1096,7 @@ function evaluatePoseAccuracy(liveGrid, refGrid) {
     }
   }
 
-  if (liveActiveCount < 10) return 0;
+  if (liveActiveCount < 5) return 0;
 
   const scoreFromLive = overlapCount / Math.max(1, liveActiveCount);
   const scoreFromRef = refActiveCount > 0 ? (overlapCount / refActiveCount) : 0.5;
@@ -1507,9 +1512,6 @@ async function sendCameraFramesLoop() {
 // GUARANTEED PASS EVALUATION AFTER 3s PREPARATION DELAY
 function evaluatePoseResult(r) {
   if (!gameLoopActive || !r || isMarkingCorrect) return;
-  
-  // Wait until 3-second preparation countdown completes!
-  if (prepCountdown > 0) return;
 
   const poseId = queue[currentIdx];
   if (!poseId || results[poseId] === 'correct') return;
@@ -1523,8 +1525,8 @@ function evaluatePoseResult(r) {
   const combinedScore = evaluatePoseAccuracy(liveGrid, refGrid);
   
   let displayPct = 0;
-  if (combinedScore > 0.02) {
-    displayPct = Math.min(100, Math.round((combinedScore / 0.12) * 100));
+  if (combinedScore > 0.01) {
+    displayPct = Math.min(100, Math.round((combinedScore / 0.10) * 100));
   }
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
