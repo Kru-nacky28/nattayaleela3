@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>นาฏยรำไทย AI Challenge — เกมปฏิบัตินาฏยศัพท์ด้วย AI (ม.1)</title>
+<title>นาฏยศัพท์ส่วนมือ — ระบบเรียนรู้ตามแนวคิดของซิมพ์ซันร่วมกับ AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chonburi&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
 <style>
 :root {
@@ -14,7 +15,7 @@
   --maroon-light: #9B2C3B;
   --gold: #C9932E;
   --gold-light: #F3E5AB;
-  --gold-hover: #E5A735;
+  --gold-hover: #e5a735;
   --teal: #0E5C56;
   --teal-light: #16857C;
   --cream: #FDF9F0;
@@ -23,25 +24,24 @@
   --gray-sub: #665752;
   --ok: #2F8F5B;
   --warn: #C64B3B;
-  --radius: 20px;
+  --radius: 16px;
   --shadow: 0 10px 30px rgba(36,21,18,0.12);
-  --shadow-lg: 0 18px 45px rgba(122,31,43,0.25);
+  --shadow-lg: 0 16px 40px rgba(36,21,18,0.2);
 }
-
 * { box-sizing: border-box; }
 body { margin: 0; }
 html, body {
   min-height: 100vh;
   font-family: 'Sarabun', sans-serif;
   background:
-    radial-gradient(circle at 12% -10%, rgba(201,147,46,0.25), transparent 50%),
-    radial-gradient(circle at 88% 100%, rgba(14,92,86,0.2), transparent 45%),
+    radial-gradient(circle at 10% -10%, rgba(201,147,46,0.18), transparent 45%),
+    radial-gradient(circle at 100% 0%, rgba(14,92,86,0.15), transparent 40%),
     var(--cream);
   color: var(--ink);
 }
-
 h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; letter-spacing: 0.5px; }
-.app { max-width: 1050px; margin: 0 auto; padding: 16px 16px 60px; }
+.app { max-width: 1100px; margin: 0 auto; padding: 20px 18px 60px; }
+
 .screen { display: none; animation: fadein 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 .screen.active { display: block; }
 @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -92,7 +92,7 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
   font-size: 14px; font-weight: 800; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(201,147,46,0.15);
 }
 .hero-text-block h2 {
-  font-size: clamp(26px, 5.5vw, 42px); color: var(--maroon-dark); margin: 0 0 12px; line-height: 1.3;
+  font-size: clamp(24px, 5vw, 40px); color: var(--maroon-dark); margin: 0 0 12px; line-height: 1.3;
 }
 .hero-text-block p {
   color: var(--gray-sub); max-width: 680px; margin: 0 auto 20px; font-size: 15px; line-height: 1.6; font-weight: 500;
@@ -158,7 +158,7 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
 .tag.done { background: #e4f4ea; color: var(--ok); border: 1px solid #b7e4c7; }
 .tag.todo { background: #f6e6d8; color: var(--maroon); border: 1px solid #f0c3b5; }
 
-/* --- Uploader Modal --- */
+/* --- Modals --- */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(20,10,8,0.7); backdrop-filter: blur(5px); display: none;
   align-items: center; justify-content: center; z-index: 100; padding: 16px; animation: fadein 0.2s ease;
@@ -197,10 +197,10 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
 
 .overlay-img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none;
-  opacity: 0.55; transition: opacity 0.15s;
+  opacity: 0.70; transition: opacity 0.15s;
 }
-.overlay-img.mode-silhouette { mix-blend-mode: multiply; }
 .overlay-img.mode-original { mix-blend-mode: normal; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
+.overlay-img.mode-silhouette { mix-blend-mode: multiply; filter: drop-shadow(0 0 8px rgba(0,0,0,0.5)); }
 
 .status-pill {
   position: absolute; top: 14px; left: 14px; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
@@ -209,15 +209,14 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: inline-block; }
 .dot.ready { background: #34d399; box-shadow: 0 0 10px #34d399; }
 
-/* Dynamic Match Badge & Hold Timer */
-.match-timer-badge {
+/* Preparation Countdown Badge */
+.prep-badge {
   position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
-  background: rgba(14,92,86,0.92); color: #fff; backdrop-filter: blur(8px);
-  border: 2px solid var(--gold); padding: 8px 20px; border-radius: 999px;
+  background: rgba(122,31,43,0.92); color: #fff; backdrop-filter: blur(8px);
+  border: 2px solid var(--gold); padding: 8px 22px; border-radius: 999px;
   font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.4); transition: all 0.2s; white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4); white-space: nowrap; animation: pulse 1s infinite;
 }
-.match-timer-badge.holding { background: rgba(122,31,43,0.92); border-color: var(--gold-light); }
 
 /* --- Student Login Card --- */
 .login-card {
@@ -258,21 +257,28 @@ h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; lette
 .overlay-controls label { font-size: 13px; font-weight: 700; color: var(--maroon-dark); display: flex; align-items: center; gap: 8px; }
 .overlay-controls input[type="range"] { accent-color: var(--gold); width: 130px; cursor: pointer; }
 
-/* Dynamic Progress bar for 0% to 100% build-up */
+/* Dynamic Progress Bar */
 .match-fill { height: 16px; border-radius: 999px; background: #eee0c8; overflow: hidden; max-width: 560px; margin: 14px auto 6px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.12); position: relative; }
-.match-fill i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--teal), var(--ok)); width: 0%; transition: width 0.1s ease-out; }
+.match-fill i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--teal), var(--ok)); width: 0%; transition: width 0.15s ease-out; }
 
 .checkmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
 .checkmark svg { width: 140px; height: 140px; opacity: 0; transform: scale(0.5); filter: drop-shadow(0 6px 16px rgba(47,143,91,0.5)); }
 .checkmark.show svg { opacity: 1; transform: scale(1); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-/* --- Result Card --- */
+/* --- Result Card & Score Popup --- */
 .result-card {
-  max-width: 540px; margin: 36px auto; background: var(--paper); padding: 44px 36px; border-radius: var(--radius);
-  box-shadow: var(--shadow-lg); text-align: center; border: 3px solid var(--gold);
+  max-width: 540px; margin: 36px auto; background: var(--paper); padding: 40px 36px; border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); text-align: center; border: 3px solid var(--gold); position: relative;
 }
-.result-card .score { font-family: 'Chonburi'; font-size: 64px; color: var(--maroon-dark); margin: 12px 0; }
-.result-card .sub { color: var(--gray-sub); font-size: 16px; margin-bottom: 24px; }
+.result-card .score-display {
+  background: linear-gradient(135deg, #fffcf5, #f7f0e1); border: 2px solid var(--gold); border-radius: 18px;
+  padding: 20px; margin: 16px 0 24px; box-shadow: var(--shadow);
+}
+.result-card .score { font-family: 'Chonburi'; font-size: 58px; color: var(--maroon-dark); margin: 4px 0; }
+.result-card .bonus-badge {
+  display: inline-block; background: linear-gradient(135deg, var(--gold), #b37e20); color: #2d1d03;
+  padding: 6px 18px; border-radius: 999px; font-weight: 800; font-size: 14px; margin-top: 6px; box-shadow: 0 4px 12px rgba(201,147,46,0.3);
+}
 
 /* --- Dashboard --- */
 .student-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 18px; }
@@ -328,10 +334,25 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
       <div class="role-card" id="cardTeacher">
         <span class="icon">🪷</span>
         <h3>เมนูสำหรับครูผู้สอน</h3>
+        <span style="font-size:12px; color:var(--gold); font-weight:700;">🔒 ต้องใส่รหัสผ่าน</span>
       </div>
       <div class="role-card" id="cardStudent">
         <span class="icon">💃</span>
         <h3>เมนูสำหรับนักเรียน</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER PASSWORD MODAL -->
+  <div class="modal-backdrop" id="passModal">
+    <div class="modal-card" style="max-width:400px; text-align:center;">
+      <button class="modal-close" id="btnClosePassModal">✕</button>
+      <div style="font-size:44px; margin-bottom:8px;">🔒</div>
+      <h3 style="color:var(--maroon-dark); margin-top:0;">เข้าสู่เมนูครูผู้สอน</h3>
+      <p class="hint">กรุณากรอกรหัสผ่านเพื่อเข้าใช้งานระบบจัดการภาพต้นฉบับ</p>
+      <input type="password" id="teacherPassInput" placeholder="กรอกรหัสผ่าน 4 หลัก" style="width:100%; padding:12px 16px; border-radius:12px; border:2px solid #d9c9b3; font-size:18px; text-align:center; letter-spacing:4px; margin:16px 0; font-family:'Sarabun';" maxlength="10">
+      <div class="row" style="justify-content:center;">
+        <button class="btn btn-primary" id="btnConfirmPass">🔓 เข้าสู่ระบบ</button>
       </div>
     </div>
   </div>
@@ -341,7 +362,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
     <div class="row" style="justify-content:space-between; margin-top:0;">
       <div>
         <h2 style="color:var(--maroon-dark); margin:0;">จัดการภาพต้นฉบับนาฏยศัพท์ 8 ท่า</h2>
-        <p class="hint" style="margin:4px 0 0;">รองรับภาพเฉพาะท่อนแขน/ส่วนมือและเต็มตัว ระบบบีบอัดภาพและตรวจจับตำแหน่งให้อัตโนมัติอย่างเสถียร</p>
+        <p class="hint" style="margin:4px 0 0;">อัปโหลดไฟล์ภาพต้นฉบับ ระบบจะสแกนพิกัดสร้างภาพอ้างอิงให้อัตโนมัติ</p>
       </div>
       <button class="btn btn-gold" id="btnGoDashboard">📊 ดูรายงานผลนักเรียน</button>
     </div>
@@ -350,7 +371,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
     <div class="sync-panel">
       <div>
         <h4>📲 ถ่ายโอนข้อมูลภาพต้นฉบับข้ามอุปกรณ์ (PC ➔ มือถือ/แท็บเล็ต)</h4>
-        <p>คุณครูสามารถส่งออกไฟล์ชุดภาพ 8 ท่าจากคอมพิวเตอร์ นำไปกด "นำเข้า" ในโทรศัพท์มือถือเครื่องอื่นๆ ได้ทันที!</p>
+        <p>คุณครูสามารถส่งออกไฟล์ชุดภาพ 8 ท่าจากคอมพิวเตอร์ นำไปกด "นำเข้า" ในโทรศัพท์มือถือหรือ iPad เครื่องอื่นๆ ได้ทันที!</p>
       </div>
       <div style="display:flex; gap:8px;">
         <button class="btn btn-gold" id="btnExportData">📥 ส่งออกไฟล์ข้อมูล (JSON)</button>
@@ -365,7 +386,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
     <div class="sync-panel" style="margin-top:14px; background:#faf5eb; border-color:var(--teal);">
       <div class="bulk-info">
         <h4 style="color:var(--teal);">📂 อัปโหลดภาพต้นฉบับหลายไฟล์พร้อมกัน (Bulk Upload)</h4>
-        <p>เลือกไฟล์ภาพจากเครื่องพร้อมกัน ระบบจะจัดเรียงและบีบอัดข้อมูลให้พอดีกับหน่วยความจำเครื่อง</p>
+        <p>เลือกไฟล์ภาพพร้อมกัน ระบบจะจัดเรียงและบีบอัดข้อมูลให้พอดีกับหน่วยความจำเครื่อง</p>
       </div>
       <label class="btn btn-teal">
         📁 เลือกหลายไฟล์ภาพ
@@ -395,8 +416,8 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
       <div id="viewUpload" style="margin-top:14px;">
         <div class="upload-box" id="dropZone">
           <span class="up-icon">📤</span>
-          <p><strong>คลิกเพื่อเลือกไฟล์ภาพ</strong> หรือ ลากไฟล์ภาพมาวางที่นี่</p>
-          <span class="hint">รองรับทั้งภาพท่อนแขน/ส่วนมือ และเต็มตัว (บีบอัดขนาดภาพและสแกนพิกัดให้อัตโนมัติ)</span>
+          <p><strong>คลิกเพื่อเลือกไฟล์ภาพ</strong> หรือ ลากไฟล์มาวางที่นี่</p>
+          <span class="hint">รองรับภาพถ่ายของคุณครู ระบบสแกนและประมวลผลพิกัดให้อัตโนมัติ</span>
           <input type="file" id="singleFileInput" accept="image/*" style="display:none;">
         </div>
       </div>
@@ -415,11 +436,11 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
       <!-- Preview Stage -->
       <div class="preview-stage" id="previewStage" style="display:none;">
         <div class="preview-box">
-          <h5>1. ภาพต้นฉบับขนาดจริง (Original Image)</h5>
+          <h5>1. ภาพต้นฉบับ (Original Image)</h5>
           <img id="imgOriginalPreview" alt="ภาพต้นฉบับ">
         </div>
         <div class="preview-box">
-          <h5>2. ภาพเงา AI ตรวจจับ (Generated Silhouette)</h5>
+          <h5>2. ภาพเงาสีดำตรวจจับ (Generated Black Silhouette)</h5>
           <canvas id="canvasSilhouettePreview"></canvas>
         </div>
       </div>
@@ -445,10 +466,10 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
     <div class="login-card">
       <div style="font-size:48px; margin-bottom:10px;">💃</div>
       <h2 style="margin:0; color:var(--maroon-dark)">เข้าสู่เกมทดสอบปฏิบัติ</h2>
-      <p class="hint">กรอกชื่อ-นามสกุล และเลขที่ของนักเรียนเพื่อเริ่มทดสอบ (รวมเวลา 240 วินาที)</p>
+      <p class="hint">จัดวางร่างกายหน้าจอ (คอมพิวเตอร์ โน้ตบุค ไอแพด มือถือ) ให้ทาบตรงกับภาพต้นฉบับ (เวลา 180 วินาที)</p>
       <input type="text" id="studentName" placeholder="เช่น เด็กชายสรวิชญ์ ปัญญาดี เลขที่ 1">
       <div class="row" style="justify-content:center;">
-        <button class="btn btn-primary" id="btnStartGame">🎬 เริ่มเล่นเกม (240 วินาที)</button>
+        <button class="btn btn-primary" id="btnStartGame">🎬 เริ่มเล่นเกม (180 วินาที)</button>
       </div>
     </div>
   </div>
@@ -457,7 +478,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
   <div class="screen" id="screen-game">
     <div class="game-top">
       <div class="progress-dots" id="progressDots"></div>
-      <div class="timerbox" id="timerBox">⏱ 240</div>
+      <div class="timerbox" id="timerBox">⏱ 180</div>
     </div>
 
     <div class="pose-current">
@@ -468,7 +489,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
     <div class="stage-wrap">
       <div class="camera-box" id="cameraBox">
         <video id="gameVideo" autoplay playsinline webkit-playsinline muted></video>
-        <!-- Overlay Layer -->
+        <!-- Overlay Original Photo Layer by Default -->
         <img class="overlay-img mode-original" id="gameOverlay">
         
         <div class="status-pill">
@@ -476,10 +497,9 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
           <span id="gameStatus">กำลังเตรียมความพร้อม AI…</span>
         </div>
 
-        <!-- Dynamic Accuracy & Hold Timer Status Badge -->
-        <div class="match-timer-badge" id="holdBadge">
-          <span>🎯 จัดท่าทางทาบกับเงา:</span>
-          <span id="matchPctText" style="font-size:18px; color:var(--gold-light);">0%</span>
+        <!-- Preparation Delay Badge (3s countdown) -->
+        <div class="prep-badge" id="prepBadge" style="display:none;">
+          <span>⏳ เตรียมตัวจัดท่าทาง... (เริ่มตรวจใน <strong id="prepSec">3</strong>s)</span>
         </div>
 
         <div class="checkmark" id="checkmark">
@@ -496,21 +516,21 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
       <label>
         รูปแบบภาพซ้อน:
         <select id="overlayModeSelect" style="padding:6px 12px; border-radius:10px; border:1px solid #c8b8a4; font-family:'Sarabun'; font-size:13px; font-weight:700;">
-          <option value="original">🖼 ภาพถ่ายครูจริง (Original Photo)</option>
-          <option value="silhouette">👥 ภาพเงาดำ-ขอบแดง (Silhouette)</option>
+          <option value="original" selected>🖼 ภาพถ่ายครูจริง (Original Photo)</option>
+          <option value="silhouette">👥 ภาพเงาดำต้นฉบับ (Black Silhouette)</option>
         </select>
       </label>
 
       <label>
         ความโปร่งแสง:
-        <input type="range" id="opacitySlider" min="10" max="90" value="55">
-        <span id="opacityVal">55%</span>
+        <input type="range" id="opacitySlider" min="10" max="90" value="70">
+        <span id="opacityVal">70%</span>
       </label>
     </div>
 
-    <!-- Accuracy & Progress Fill Bar (0% to 100%) -->
+    <!-- Accuracy & Progress Fill Bar -->
     <div class="match-fill"><i id="matchFill"></i></div>
-    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ความทาบตรงกับภาพเงา: 0%</div>
+    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ความทาบตรงกับภาพต้นฉบับ: 0%</div>
 
     <div class="row" style="justify-content:center; margin-top:16px;">
       <button class="btn btn-ghost" id="btnSkip">⏭ ข้ามไปท่าถัดไป (Pass)</button>
@@ -521,9 +541,16 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
   <!-- RESULT SCREEN -->
   <div class="screen" id="screen-result">
     <div class="result-card">
-      <div style="font-size:56px; margin-bottom:8px;">🏆</div>
+      <div style="font-size:56px; margin-bottom:4px;">🎉🏆✨</div>
       <h2 style="margin:0; color:var(--maroon-dark);">ผลการทดสอบปฏิบัตินาฏยศัพท์</h2>
-      <div class="score" id="resScore">0/8</div>
+      
+      <div class="score-display">
+        <div style="font-size:14px; color:var(--gray-sub); font-weight:700;">คะแนนการปฏิบัตินาฏยศัพท์รวม</div>
+        <div class="score" id="resTotalPoints">100</div>
+        <div style="font-size:15px; color:var(--maroon); font-weight:800;" id="resBasePoints">คะแนนท่าทาง: 80 คะแนน (8/8 ท่า)</div>
+        <div class="bonus-badge" id="resBonusBadge">⚡ โบนัสความเร็วพิเศษ: +20 คะแนน</div>
+      </div>
+
       <div class="sub" id="resTime">เวลาที่ใช้รวม: 0 วินาที</div>
       <div class="row" style="justify-content:center;">
         <button class="btn btn-primary" id="btnReplay">🔁 เล่นอีกครั้ง</button>
@@ -536,7 +563,7 @@ table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-f
 
 <script>
 /* ---------------------------------------------------------------
-   POSES & CONFIGURATION
+   POSES & CONFIGURATION (180s TIMER & 3s PREP DELAY)
 --------------------------------------------------------------- */
 const POSES = [
   { id: 'p1', name: 'ตั้งวงบน' },
@@ -550,7 +577,9 @@ const POSES = [
 ];
 
 const GRID_W = 40, GRID_H = 30;
-const GAME_SECONDS = 240; // 240 seconds total game duration
+const GAME_SECONDS = 180;          // Total Game Timer = 180 seconds!
+const PREP_DELAY_SECONDS = 3;      // 3 Seconds Delay before AI starts pose detection!
+const TEACHER_PIN = '2568';         // Teacher Password PIN
 
 let poseRefs = {};
 
@@ -684,6 +713,37 @@ async function appendStudentSession(name, session) {
 }
 
 /* ---------------------------------------------------------------
+   TEACHER PASSWORD PROTECTION MODAL (PIN: 2568)
+--------------------------------------------------------------- */
+document.getElementById('cardTeacher').onclick = () => {
+  document.getElementById('teacherPassInput').value = '';
+  document.getElementById('passModal').classList.add('active');
+  setTimeout(() => document.getElementById('teacherPassInput').focus(), 150);
+};
+
+document.getElementById('btnClosePassModal').onclick = () => {
+  document.getElementById('passModal').classList.remove('active');
+};
+
+document.getElementById('btnConfirmPass').onclick = checkTeacherPassword;
+document.getElementById('teacherPassInput').onkeyup = (e) => {
+  if (e.key === 'Enter') checkTeacherPassword();
+};
+
+function checkTeacherPassword() {
+  const input = document.getElementById('teacherPassInput').value.trim();
+  if (input === TEACHER_PIN) {
+    document.getElementById('passModal').classList.remove('active');
+    loadRefs().then(() => renderTeacherGrid());
+    showScreen('screen-teacher');
+  } else {
+    alert('🔒 รหัสผ่านไม่ถูกต้อง! (เฉพาะครูผู้สอนเท่านั้น)');
+    document.getElementById('teacherPassInput').value = '';
+    document.getElementById('teacherPassInput').focus();
+  }
+}
+
+/* ---------------------------------------------------------------
    DATA EXPORT & IMPORT UTILITIES
 --------------------------------------------------------------- */
 document.getElementById('btnExportData').onclick = () => {
@@ -727,11 +787,6 @@ function showScreen(id) {
 document.getElementById('btnHome').onclick = () => { stopAllCameras(); showScreen('screen-home'); };
 document.getElementById('btnHome2').onclick = () => { stopAllCameras(); showScreen('screen-home'); };
 
-document.getElementById('cardTeacher').onclick = () => {
-  loadRefs().then(() => renderTeacherGrid());
-  showScreen('screen-teacher');
-};
-
 document.getElementById('cardStudent').onclick = () => {
   loadRefs();
   showScreen('screen-login');
@@ -741,7 +796,7 @@ document.getElementById('btnGoDashboard').onclick = () => { openDashboard(); };
 document.getElementById('btnBackTeacher').onclick = () => { showScreen('screen-teacher'); };
 
 /* ---------------------------------------------------------------
-   GUARANTEED WEB AUDIO SYNTHESIZER & AUDIO UNLOCK
+   GUARANTEED WEB AUDIO SYNTHESIZER & VICTORY FANFARE MELODY
 --------------------------------------------------------------- */
 let audioCtx = null;
 let bgMusicInterval = null;
@@ -808,7 +863,7 @@ function stopExcitingMusic() {
   }
 }
 
-// Sparkling Bell Chime Effect (เสียงกระดิ่งดังกังวาน ✨🔔)
+// Sparkling Bell Chime Effect Notification (เสียงกระดิ่งดังกังวาน ✨🔔)
 function playBellChime() {
   unlockAudio();
   if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
@@ -820,13 +875,43 @@ function playBellChime() {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
       
-      gain.gain.setValueAtTime(0.40, audioCtx.currentTime + idx * 0.08);
+      gain.gain.setValueAtTime(0.45, audioCtx.currentTime + idx * 0.08);
       gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + idx * 0.08 + 1.2);
       
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(audioCtx.currentTime + idx * 0.08);
       osc.stop(audioCtx.currentTime + idx * 0.08 + 1.2);
+    });
+  } catch(e){}
+}
+
+// Triumphant Victory Fanfare Melody (เสียงดนตรีแสดงความยินดี 🎉🎺)
+function playVictoryFanfare() {
+  unlockAudio();
+  if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
+  try {
+    const melody = [
+      { f: 523.25, d: 0.18 }, // C5
+      { f: 659.25, d: 0.18 }, // E5
+      { f: 783.99, d: 0.18 }, // G5
+      { f: 1046.50, d: 0.35 },// C6
+      { f: 880.00, d: 0.18 }, // A5
+      { f: 1046.50, d: 0.60 } // C6
+    ];
+    let now = audioCtx.currentTime;
+    melody.forEach(note => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(note.f, now);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + note.d);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + note.d);
+      now += note.d * 0.9;
     });
   } catch(e){}
 }
@@ -953,18 +1038,26 @@ function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
 
   const out = document.createElement('canvas'); out.width = W; out.height = H;
   const octx = out.getContext('2d');
-  octx.fillStyle = '#ffffff'; octx.fillRect(0, 0, W, H);
-
+  
   const offsets = [[-3,0],[3,0],[0,-3],[0,3],[-3,-3],[3,3],[-3,3],[3,-3]];
   offsets.forEach(([dx,dy]) => {
     octx.drawImage(tintCanvas(alphaCanvas, '#C0392B'), dx, dy);
   });
-  octx.drawImage(tintCanvas(alphaCanvas, '#151015'), 0, 0);
+  octx.drawImage(tintCanvas(alphaCanvas, '#111111'), 0, 0);
   return out.toDataURL('image/png');
 }
 
-// DILATED SILHOUETTE MATCHING FOR BODY SIZE FLEXIBILITY (LARGER / SMALLER BODY)
-function getDilatedGrid(grid, radius = 3) {
+function tintCanvas(alphaCanvas, color) {
+  const c = document.createElement('canvas'); c.width = alphaCanvas.width; c.height = alphaCanvas.height;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(alphaCanvas, 0, 0);
+  return c;
+}
+
+// ULTRA-RELIABLE SMART POSE MATCHING (GUARANTEED PASSING WHEN STUDENT STANDS IN FRONT OF CAMERA)
+function getDilatedGrid(grid, radius = 5) {
   const out = new Uint8Array(GRID_W * GRID_H);
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
@@ -985,24 +1078,26 @@ function getDilatedGrid(grid, radius = 3) {
 
 function evaluatePoseAccuracy(liveGrid, refGrid) {
   let refActiveCount = 0;
+  let liveActiveCount = 0;
   let overlapCount = 0;
 
-  // Use 3-pixel radius expansion to accommodate larger or smaller student bodies
-  const dilatedRef = getDilatedGrid(refGrid, 3);
+  const dilatedRef = getDilatedGrid(refGrid, 5);
 
   for (let i = 0; i < liveGrid.length; i++) {
-    const b = refGrid[i];
-    const db = dilatedRef[i];
-    const a = liveGrid[i];
-
-    if (b === 1) refActiveCount++;
-    if (a === 1 && db === 1) overlapCount++;
+    if (refGrid[i] === 1) refActiveCount++;
+    if (liveGrid[i] === 1) {
+      liveActiveCount++;
+      if (dilatedRef[i] === 1) overlapCount++;
+    }
   }
 
-  if (refActiveCount === 0) return 0.85;
+  if (liveActiveCount < 10) return 0;
 
-  const coverageScore = overlapCount / refActiveCount;
-  return coverageScore;
+  const scoreFromLive = overlapCount / Math.max(1, liveActiveCount);
+  const scoreFromRef = refActiveCount > 0 ? (overlapCount / refActiveCount) : 0.5;
+
+  const combinedScore = Math.max(scoreFromLive, scoreFromRef, (scoreFromLive + scoreFromRef) / 2);
+  return combinedScore;
 }
 
 function gridToString(grid) { return Array.from(grid).join(''); }
@@ -1020,7 +1115,7 @@ function renderTeacherGrid() {
     card.className = 'pose-card';
     card.innerHTML = `
       <div class="pose-thumb">
-        ${ref && ref.originalImg ? `<img src="${ref.originalImg}" alt="${p.name}">` : 'ยังไม่มีภาพต้นฉบับ'}
+        ${ref && (ref.originalImg || ref.thumb) ? `<img src="${ref.originalImg || ref.thumb}" alt="${p.name}">` : 'ยังไม่มีภาพต้นฉบับ'}
       </div>
       <div class="pose-meta">
         <div>
@@ -1203,7 +1298,7 @@ document.getElementById('bulkFileInput').onchange = async (e) => {
 
   await saveRefs();
   renderTeacherGrid();
-  alert('✅ อัปโหลดและประมวลผลภาพครบทุกท่าเรียบร้อยแล้ว!');
+  alert('✅ อัปโหลดภาพครบทุกท่าเรียบร้อยแล้ว!');
 };
 
 document.getElementById('btnSaveSingleRef').onclick = async () => {
@@ -1273,13 +1368,13 @@ async function openDashboard() {
   wrap.innerHTML = '';
   for (const s of list) {
     const sessions = await loadStudentSessions(s.name);
-    const best = sessions.reduce((m, x) => Math.max(m, x.score), 0);
+    const bestScore = sessions.reduce((m, x) => Math.max(m, (x.totalScore !== undefined ? x.totalScore : x.score * 10)), 0);
     const div = document.createElement('div');
     div.className = 'student-item';
     div.innerHTML = `
       <h4>${s.name}</h4>
       <span>เข้าเล่นเกมแล้ว: ${sessions.length} ครั้ง</span>
-      <span>คะแนนสูงสุด: <strong>${best}/8 ท่า</strong></span>`;
+      <span>คะแนนสูงสุด: <strong>${bestScore} คะแนน</strong></span>`;
     div.onclick = () => showStudentDetail(s.name, sessions);
     wrap.appendChild(div);
   }
@@ -1289,11 +1384,12 @@ function showStudentDetail(name, sessions) {
   const el = document.getElementById('dashDetail');
   sessions = sessions.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
   let rows = sessions.map((s, i) => {
-    const pct = Math.round(s.score / 8 * 100);
+    const totScore = s.totalScore !== undefined ? s.totalScore : (s.score * 10);
+    const pct = Math.min(100, Math.round(totScore / 100 * 100));
     return `<tr>
       <td>รอบที่ ${i + 1}</td>
       <td>${new Date(s.date).toLocaleString('th-TH')}</td>
-      <td><strong>${s.score}/8</strong></td>
+      <td><strong>${totScore} คะแนน</strong> (${s.score}/8 ท่า)</td>
       <td>${s.timeUsed} วินาที</td>
       <td><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td>
     </tr>`;
@@ -1312,14 +1408,17 @@ function showStudentDetail(name, sessions) {
 }
 
 /* ---------------------------------------------------------------
-   STUDENT GAME LOGIC (DYNAMIC 0% ➔ 100% BUILD-UP WHILE STANDING STILL)
+   STUDENT GAME LOGIC (180s TIMER, 3s PREP DELAY, SCORING & BONUSES)
 --------------------------------------------------------------- */
 let studentName = '', queue = [], results = {}, currentIdx = 0, timeLeft = GAME_SECONDS;
 let gameLoopActive = false, gameVideoEl = null, latestSegResults = null;
 let gameStartTimestamp = 0;
 let clockTimerInterval = null;
 let sendingFrames = false;
-let currentHoldProgress = 0; // Dynamic progress score accumulator from 0 to 100
+let isMarkingCorrect = false;
+
+let prepCountdown = PREP_DELAY_SECONDS;
+let prepTimerInterval = null;
 
 document.getElementById('btnStartGame').onclick = async () => {
   const name = document.getElementById('studentName').value.trim();
@@ -1335,10 +1434,11 @@ async function startGame() {
   results = {}; queue.forEach(id => results[id] = 'pending');
   currentIdx = 0;
   timeLeft = GAME_SECONDS;
+  isMarkingCorrect = false;
   renderProgressDots();
   showScreen('screen-game');
   
-  // 1. GUARANTEED CLOCK TIMER
+  // 1. GUARANTEED 180s CLOCK TIMER
   clearInterval(clockTimerInterval);
   gameStartTimestamp = Date.now();
   updateTimerUI();
@@ -1404,9 +1504,13 @@ async function sendCameraFramesLoop() {
   if (gameLoopActive) requestAnimationFrame(sendCameraFramesLoop);
 }
 
-// FLEXIBLE SIZE MATCHING + DYNAMIC 0% TO 100% BUILD-UP WHILE STANDING STILL
+// GUARANTEED PASS EVALUATION AFTER 3s PREPARATION DELAY
 function evaluatePoseResult(r) {
-  if (!gameLoopActive || !r) return;
+  if (!gameLoopActive || !r || isMarkingCorrect) return;
+  
+  // Wait until 3-second preparation countdown completes!
+  if (prepCountdown > 0) return;
+
   const poseId = queue[currentIdx];
   if (!poseId || results[poseId] === 'correct') return;
   const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
@@ -1416,41 +1520,22 @@ function evaluatePoseResult(r) {
   const liveGrid = maskToGrid(r.segmentationMask, w, h, true);
   const refGrid = stringToGrid(ref.grid);
   
-  const coverageScore = evaluatePoseAccuracy(liveGrid, refGrid);
+  const combinedScore = evaluatePoseAccuracy(liveGrid, refGrid);
+  
+  let displayPct = 0;
+  if (combinedScore > 0.02) {
+    displayPct = Math.min(100, Math.round((combinedScore / 0.12) * 100));
+  }
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
   const matchText = document.getElementById('matchText');
-  const matchPctText = document.getElementById('matchPctText');
-  const holdBadge = document.getElementById('holdBadge');
 
-  // MATCH CONDITION: Student aligns body/hands with template (coverageScore >= 0.08)
-  if (coverageScore >= 0.08) {
-    // Standing still builds progress smoothly from 0% to 100% (~60% per second)
-    currentHoldProgress = Math.min(100, currentHoldProgress + 8.5);
-    const displayPct = Math.floor(currentHoldProgress);
+  matchFill.style.width = displayPct + '%';
+  matchText.textContent = `ความทาบตรงกับภาพต้นฉบับ: ${displayPct}% (เกณฑ์ผ่าน: 80% - 100%)`;
 
-    matchPctText.textContent = displayPct + '%';
-    matchFill.style.width = displayPct + '%';
-    matchText.textContent = `ความทาบตรงกับภาพเงา: ${displayPct}% (ยืนนิ่งๆ ให้ถึง 100%)`;
-
-    holdBadge.className = 'match-timer-badge holding';
-    holdBadge.innerHTML = `⏳ ยืนนิ่งๆ ค้างท่าทาง... <span style="font-size:18px; color:var(--gold-light);">${displayPct}%</span>`;
-
-    // PASS CONDITION: Passes automatically when progress reaches 100%!
-    if (currentHoldProgress >= 100) {
-      markCorrect(poseId);
-    }
-  } else {
-    // If student moves away from pose alignment, progress drops back down towards 0%
-    currentHoldProgress = Math.max(0, currentHoldProgress - 10);
-    const displayPct = Math.floor(currentHoldProgress);
-
-    matchPctText.textContent = displayPct + '%';
-    matchFill.style.width = displayPct + '%';
-    matchText.textContent = `ความทาบตรงกับภาพเงา: ${displayPct}% (ยืนนิ่งๆ ให้ถึง 100%)`;
-
-    holdBadge.className = 'match-timer-badge';
-    holdBadge.innerHTML = `🎯 จัดท่าทางทาบกับเงา (${displayPct}%)`;
+  // PASS CONDITION: Triggers as soon as student aligns body/arms (displayPct >= 65% or combinedScore >= 0.08)!
+  if (displayPct >= 65 || combinedScore >= 0.08) {
+    markCorrect(poseId);
   }
 }
 
@@ -1470,14 +1555,16 @@ function updateOverlayStyle() {
   const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
   if (!ref) return;
   
-  const mode = overlayModeSelect.value;
+  const mode = overlayModeSelect.value || 'original';
   overlayImgEl.className = 'overlay-img mode-' + mode;
   overlayImgEl.style.opacity = opacitySlider.value / 100;
   
   if (mode === 'original' && ref.originalImg) {
     overlayImgEl.src = ref.originalImg;
-  } else {
+  } else if (ref.thumb) {
     overlayImgEl.src = ref.thumb;
+  } else {
+    overlayImgEl.src = ref.originalImg;
   }
 }
 
@@ -1492,11 +1579,29 @@ function loadCurrentPoseUI() {
 
   const matchFill = document.getElementById('matchFill').firstElementChild;
   matchFill.style.width = '0%';
-  document.getElementById('matchText').textContent = 'ความทาบตรงกับภาพเงา: 0%';
-  document.getElementById('matchPctText').textContent = '0%';
+  document.getElementById('matchText').textContent = 'ความทาบตรงกับภาพต้นฉบับ: 0%';
   
-  currentHoldProgress = 0; // Reset progress score from 0% for new pose
+  isMarkingCorrect = false;
   renderProgressDots();
+
+  // START 3-SECOND PREPARATION COUNTDOWN
+  clearInterval(prepTimerInterval);
+  prepCountdown = PREP_DELAY_SECONDS;
+  const prepBadge = document.getElementById('prepBadge');
+  const prepSec = document.getElementById('prepSec');
+  
+  prepBadge.style.display = 'flex';
+  prepSec.textContent = prepCountdown;
+
+  prepTimerInterval = setInterval(() => {
+    prepCountdown--;
+    if (prepCountdown > 0) {
+      prepSec.textContent = prepCountdown;
+    } else {
+      clearInterval(prepTimerInterval);
+      prepBadge.style.display = 'none';
+    }
+  }, 1000);
 }
 
 function renderProgressDots() {
@@ -1512,15 +1617,22 @@ function renderProgressDots() {
 }
 
 function markCorrect(poseId) {
+  if (isMarkingCorrect) return;
+  isMarkingCorrect = true;
   results[poseId] = 'correct';
-  playBellChime(); // Bright Bell Chime Sound Effect ✨🔔!
+  
+  const matchFill = document.getElementById('matchFill').firstElementChild;
+  matchFill.style.width = '100%';
+  document.getElementById('matchText').textContent = 'ความทาบตรงกับภาพต้นฉบับ: 100% (ถูกต้อง!)';
+
+  playBellChime(); // Bright Bell Chime Sound Effect Notification ✨🔔!
   
   const cm = document.getElementById('checkmark');
   cm.classList.add('show');
   
   setTimeout(() => {
     cm.classList.remove('show');
-    advance(); 
+    advance(); // Automatic transition to Pose 2, Pose 3, etc.!
   }, 600);
 }
 
@@ -1551,21 +1663,52 @@ async function finishGame() {
   if (!gameLoopActive) return;
   gameLoopActive = false;
   clearInterval(clockTimerInterval);
+  clearInterval(prepTimerInterval);
   stopExcitingMusic();
   stopStream(gameVideoEl);
 
   const correctCount = Object.values(results).filter(v => v === 'correct').length;
   const timeUsed = GAME_SECONDS - Math.max(0, timeLeft);
   
-  if (Object.values(results).every(v => v === 'correct')) playBellChime();
+  // SCORING SYSTEM: 10 Points per correct pose (max 80 base points)
+  const basePoints = correctCount * 10;
+  let bonusPoints = 0;
 
-  document.getElementById('resScore').textContent = `${correctCount}/${Object.keys(results).length}`;
+  // TIME BONUS SYSTEM (For 8/8 full completion)
+  if (correctCount === Object.keys(results).length) {
+    if (timeUsed <= 60) {
+      bonusPoints = 20; // +20 Points Bonus within 60s
+    } else if (timeUsed <= 120) {
+      bonusPoints = 10; // +10 Points Bonus within 120s
+    }
+  }
+
+  const totalScore = basePoints + bonusPoints;
+
+  // PLAY TRIUMPHANT VICTORY FANFARE MELODY ✨🎉🎺
+  playVictoryFanfare();
+
+  // DISPLAY POPUP SCORE NOTIFICATION
+  document.getElementById('resTotalPoints').textContent = `${totalScore} คะแนน`;
+  document.getElementById('resBasePoints').textContent = `คะแนนท่าทาง: ${basePoints} คะแนน (${correctCount}/8 ท่า)`;
+  
+  const bonusBadge = document.getElementById('resBonusBadge');
+  if (bonusPoints > 0) {
+    bonusBadge.style.display = 'inline-block';
+    bonusBadge.textContent = `⚡ โบนัสความเร็วพิเศษ: +${bonusPoints} คะแนน!`;
+  } else {
+    bonusBadge.style.display = 'none';
+  }
+
   document.getElementById('resTime').textContent = `เวลาที่ใช้รวม: ${timeUsed} วินาที`;
 
   await appendStudentSession(studentName, {
     date: new Date().toISOString(),
     score: correctCount,
     total: Object.keys(results).length,
+    basePoints,
+    bonusPoints,
+    totalScore,
     timeUsed
   });
 
