@@ -1,1729 +1,319 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>นาฏยศัพท์ส่วนมือ — ระบบเรียนรู้ตามแนวคิดของซิมพ์ซันร่วมกับ AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Chonburi&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
-<style>
-:root {
-  --maroon: #7A1F2B;
-  --maroon-dark: #4A101A;
-  --maroon-light: #9B2C3B;
-  --gold: #C9932E;
-  --gold-light: #F3E5AB;
-  --gold-hover: #e5a735;
-  --teal: #0E5C56;
-  --teal-light: #16857C;
-  --cream: #FDF9F0;
-  --paper: #FFFFFF;
-  --ink: #241512;
-  --gray-sub: #665752;
-  --ok: #2F8F5B;
-  --warn: #C64B3B;
-  --radius: 16px;
-  --shadow: 0 10px 30px rgba(36,21,18,0.12);
-  --shadow-lg: 0 16px 40px rgba(36,21,18,0.2);
-}
-* { box-sizing: border-box; }
-body { margin: 0; }
-html, body {
-  min-height: 100vh;
-  font-family: 'Sarabun', sans-serif;
-  background:
-    radial-gradient(circle at 10% -10%, rgba(201,147,46,0.18), transparent 45%),
-    radial-gradient(circle at 100% 0%, rgba(14,92,86,0.15), transparent 40%),
-    var(--cream);
-  color: var(--ink);
-}
-h1, h2, h3, .display { font-family: 'Chonburi', cursive; font-weight: 400; letter-spacing: 0.5px; }
-.app { max-width: 1100px; margin: 0 auto; padding: 20px 18px 60px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เกม AI นาฏยศัพท์ ขยับให้ตรงเงา - นวัตกรรมการเรียนรู้นาฏศิลป์ไทย</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Prompt:wght@300;400;600;700&family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
 
-.screen { display: none; animation: fadein 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-.screen.active { display: block; }
-@keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-
-/* --- Kranok Flourish Divider --- */
-.flourish { display: flex; align-items: center; gap: 14px; margin: 20px 0 26px; color: var(--gold); }
-.flourish svg { flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(201,147,46,0.3)); }
-.flourish .line { flex: 1; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
-
-/* --- Topbar --- */
-.topbar {
-  display: flex; align-items: center; justify-content: space-between; padding: 12px 6px 18px;
-  border-bottom: 2px dashed rgba(201,147,46,0.3);
-}
-.brand { display: flex; align-items: center; gap: 14px; }
-.brand .mark {
-  width: 50px; height: 50px; border-radius: 50%;
-  background: conic-gradient(from 200deg, var(--maroon), var(--gold), var(--teal), var(--maroon));
-  box-shadow: 0 4px 15px rgba(122,31,43,0.3); position: relative; flex-shrink: 0;
-  border: 2px solid var(--gold-light);
-}
-.brand .mark::after { content: "🎭"; position: absolute; inset: 4px; background: var(--paper); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-.brand h1 { font-size: 22px; margin: 0; color: var(--maroon-dark); line-height: 1.2; }
-.brand span { display: block; font-size: 11px; color: var(--teal); letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; }
-
-.topbar-controls { display: flex; align-items: center; gap: 10px; }
-.navbtn {
-  border: 2px solid var(--maroon); background: var(--paper); color: var(--maroon);
-  padding: 8px 16px; border-radius: 999px; font-family: 'Sarabun'; cursor: pointer; font-size: 13px; font-weight: 700;
-  box-shadow: 0 4px 12px rgba(122,31,43,0.1); transition: all 0.2s ease;
-}
-.navbtn:hover { background: var(--maroon); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(122,31,43,0.25); }
-
-.audio-toggle-btn {
-  border: 2px solid var(--gold); background: #fffcf5; color: var(--maroon-dark);
-  padding: 8px 16px; border-radius: 999px; font-family: 'Sarabun'; cursor: pointer; font-size: 13px; font-weight: 700;
-  box-shadow: 0 4px 12px rgba(201,147,46,0.15); transition: all 0.2s ease; display: flex; align-items: center; gap: 6px;
-}
-.audio-toggle-btn.muted { border-color: #ccc; color: #888; background: #f5f5f5; }
-
-/* --- Text Hero Header --- */
-.hero-text-block {
-  text-align: center; padding: 28px 14px 10px;
-}
-.hero-badge {
-  display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, rgba(201,147,46,0.18), rgba(122,31,43,0.1));
-  border: 1.5px solid var(--gold); color: var(--maroon-dark); padding: 8px 22px; border-radius: 999px;
-  font-size: 14px; font-weight: 800; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(201,147,46,0.15);
-}
-.hero-text-block h2 {
-  font-size: clamp(24px, 5vw, 40px); color: var(--maroon-dark); margin: 0 0 12px; line-height: 1.3;
-}
-.hero-text-block p {
-  color: var(--gray-sub); max-width: 680px; margin: 0 auto 20px; font-size: 15px; line-height: 1.6; font-weight: 500;
-}
-
-.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 780px; margin: 20px auto 0; }
-@media (max-width: 600px) { .role-grid { grid-template-columns: 1fr; } }
-
-.role-card {
-  background: linear-gradient(145deg, #ffffff, #fdfaf3); border-radius: var(--radius); padding: 36px 24px; box-shadow: var(--shadow);
-  cursor: pointer; border: 2px solid rgba(201,147,46,0.35); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; position: relative; overflow: hidden;
-  user-select: none; -webkit-tap-highlight-color: transparent;
-}
-.role-card::before {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
-  background: linear-gradient(90deg, var(--maroon), var(--gold), var(--teal));
-}
-.role-card:hover, .role-card:active { border-color: var(--gold); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-.role-card .icon { font-size: 50px; margin-bottom: 12px; display: inline-block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
-.role-card h3 { margin: 0; color: var(--maroon-dark); font-size: 24px; pointer-events: none; }
-
-/* --- Buttons & Data Sync Tools --- */
-.btn {
-  font-family: 'Sarabun'; font-weight: 700; border: none; border-radius: 14px; padding: 12px 24px;
-  cursor: pointer; font-size: 14px; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-}
-.btn-primary { background: linear-gradient(135deg, var(--maroon), var(--maroon-dark)); color: #fff; box-shadow: 0 6px 18px rgba(122,31,43,0.3); }
-.btn-primary:hover { background: linear-gradient(135deg, var(--maroon-light), var(--maroon)); transform: translateY(-2px); box-shadow: 0 8px 22px rgba(122,31,43,0.4); }
-.btn-gold { background: linear-gradient(135deg, var(--gold), #b37e20); color: #2d1d03; box-shadow: 0 6px 18px rgba(201,147,46,0.3); }
-.btn-gold:hover { background: linear-gradient(135deg, var(--gold-light), var(--gold)); transform: translateY(-2px); }
-.btn-teal { background: linear-gradient(135deg, var(--teal), #0a443f); color: #fff; box-shadow: 0 6px 18px rgba(14,92,86,0.3); }
-.btn-teal:hover { background: linear-gradient(135deg, var(--teal-light), var(--teal)); transform: translateY(-2px); }
-.btn-ghost { background: #fff; border: 2px solid #d9c9b3; color: var(--ink); }
-.btn-ghost:hover { background: rgba(201,147,46,0.1); border-color: var(--gold); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
-
-/* Sync Transfer Panel */
-.sync-panel {
-  background: linear-gradient(135deg, #fffcf5, #f7f0e1); border: 2px dashed var(--gold); border-radius: var(--radius);
-  padding: 18px 22px; margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; box-shadow: var(--shadow);
-}
-.sync-panel h4 { margin: 0 0 4px; color: var(--maroon-dark); font-size: 16px; }
-.sync-panel p { margin: 0; font-size: 13px; color: var(--gray-sub); }
-
-/* --- Pose Grid (Teacher) --- */
-.pose-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px; margin-top: 20px; }
-.pose-card {
-  background: var(--paper); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow);
-  border: 2px solid rgba(201,147,46,0.25); transition: all 0.25s ease; display: flex; flex-direction: column;
-}
-.pose-card:hover { border-color: var(--gold); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-.pose-thumb {
-  width: 100%; aspect-ratio: 4/3; background: #f5eedf repeating-linear-gradient(45deg,#f4ede0,#f4ede0 10px,#efe3cf 10px,#efe3cf 20px);
-  display: flex; align-items: center; justify-content: center; color: #a3937f; font-size: 13px; position: relative; overflow: hidden;
-}
-.pose-thumb img { width: 100%; height: 100%; object-fit: contain; background: #faf5ec; display: block; }
-.pose-meta { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-.pose-meta .num { font-size: 12px; color: var(--gold); font-weight: 800; letter-spacing: 1px; }
-.pose-meta h4 { margin: 4px 0 10px; font-size: 16px; color: var(--ink); }
-.pose-card-actions { display: flex; gap: 8px; margin-top: 10px; }
-.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 999px; width: fit-content; }
-.tag.done { background: #e4f4ea; color: var(--ok); border: 1px solid #b7e4c7; }
-.tag.todo { background: #f6e6d8; color: var(--maroon); border: 1px solid #f0c3b5; }
-
-/* --- Modals --- */
-.modal-backdrop {
-  position: fixed; inset: 0; background: rgba(20,10,8,0.7); backdrop-filter: blur(5px); display: none;
-  align-items: center; justify-content: center; z-index: 100; padding: 16px; animation: fadein 0.2s ease;
-}
-.modal-backdrop.active { display: flex; }
-.modal-card {
-  background: var(--paper); max-width: 720px; width: 100%; max-height: 92vh; overflow-y: auto;
-  border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-lg); border: 3px solid var(--gold); position: relative;
-}
-.modal-close { position: absolute; top: 18px; right: 18px; background: #faf5eb; border: none; font-size: 20px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; color: var(--maroon); font-weight: bold; }
-
-.upload-box {
-  border: 2px dashed var(--gold); background: #fffcf5; border-radius: var(--radius); padding: 24px; text-align: center;
-  cursor: pointer; transition: all 0.2s; margin-top: 14px;
-}
-.upload-box:hover, .upload-box.dragover { background: #f7eed8; border-color: var(--maroon); }
-.upload-box .up-icon { font-size: 38px; color: var(--gold); margin-bottom: 6px; display: block; }
-
-.preview-stage {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; background: #faf5eb; padding: 16px; border-radius: 14px; border: 1px solid #ebdcc8;
-}
-@media (max-width: 640px) { .preview-stage { grid-template-columns: 1fr; } }
-.preview-box { text-align: center; }
-.preview-box h5 { margin: 0 0 8px; font-size: 13px; color: var(--maroon-dark); font-weight: 700; }
-.preview-box img, .preview-box canvas {
-  width: 100%; max-height: 240px; object-fit: contain; background: #fff; border-radius: 12px; border: 1px solid #e2d5c3; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
-
-/* --- Camera Box & Overlays --- */
-.stage-wrap { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
-.camera-box {
-  position: relative; width: 100%; max-width: 560px; aspect-ratio: 4/3; border-radius: var(--radius);
-  overflow: hidden; background: #111; box-shadow: var(--shadow-lg); border: 4px solid var(--gold); flex-shrink: 0;
-}
-.camera-box video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
-
-.overlay-img {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none;
-  opacity: 0.70; transition: opacity 0.15s;
-}
-.overlay-img.mode-original { mix-blend-mode: normal; filter: drop-shadow(0 0 10px rgba(0,0,0,0.6)); }
-.overlay-img.mode-silhouette { mix-blend-mode: multiply; filter: drop-shadow(0 0 8px rgba(0,0,0,0.5)); }
-
-.status-pill {
-  position: absolute; top: 14px; left: 14px; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
-  color: #fff; padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; z-index: 5;
-}
-.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: inline-block; }
-.dot.ready { background: #34d399; box-shadow: 0 0 10px #34d399; }
-
-/* Preparation Countdown Badge */
-.prep-badge {
-  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
-  background: rgba(122,31,43,0.92); color: #fff; backdrop-filter: blur(8px);
-  border: 2px solid var(--gold); padding: 8px 22px; border-radius: 999px;
-  font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.4); white-space: nowrap; animation: pulse 1s infinite;
-}
-
-/* --- Student Login Card --- */
-.login-card {
-  max-width: 460px; margin: 36px auto; background: var(--paper); padding: 40px 34px; border-radius: var(--radius);
-  box-shadow: var(--shadow-lg); text-align: center; border: 2px solid var(--gold); position: relative; overflow: hidden;
-}
-.login-card input {
-  width: 100%; padding: 14px 18px; border-radius: 14px; border: 2px solid #d9c9b3; font-family: 'Sarabun'; font-size: 16px; margin: 18px 0; outline: none; transition: border-color 0.2s;
-}
-.login-card input:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,147,46,0.2); }
-
-/* --- Game Controls & Progress --- */
-.game-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
-.timerbox {
-  font-family: 'Chonburi'; font-size: 32px; color: var(--maroon-dark); background: var(--paper); padding: 8px 24px;
-  border-radius: 16px; box-shadow: var(--shadow); border: 2px solid var(--gold); display: flex; align-items: center; gap: 8px;
-}
-.timerbox.low { color: var(--warn); border-color: var(--warn); animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-
-.progress-dots { display: flex; gap: 8px; flex-wrap: wrap; }
-.pdot {
-  width: 36px; height: 36px; border-radius: 50%; background: #eadfce; display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 800; color: #8a7864; border: 2px solid transparent; transition: all 0.2s ease;
-}
-.pdot.current { border-color: var(--gold); transform: scale(1.15); box-shadow: 0 0 12px rgba(201,147,46,0.6); background: #fff; color: var(--maroon-dark); }
-.pdot.correct { background: var(--ok); color: #fff; }
-.pdot.skipped { background: #f0d8b0; color: var(--maroon); }
-
-.pose-current { text-align: center; margin: 12px 0 16px; }
-.pose-current .num { color: var(--gold); font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
-.pose-current h2 { margin: 2px 0; font-size: 34px; color: var(--maroon-dark); }
-
-.overlay-controls {
-  background: var(--paper); padding: 14px 20px; border-radius: 16px; box-shadow: var(--shadow); margin-top: 14px;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border: 1px solid #eee0c8;
-}
-.overlay-controls label { font-size: 13px; font-weight: 700; color: var(--maroon-dark); display: flex; align-items: center; gap: 8px; }
-.overlay-controls input[type="range"] { accent-color: var(--gold); width: 130px; cursor: pointer; }
-
-/* Dynamic Progress Bar */
-.match-fill { height: 16px; border-radius: 999px; background: #eee0c8; overflow: hidden; max-width: 560px; margin: 14px auto 6px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.12); position: relative; }
-.match-fill i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--teal), var(--ok)); width: 0%; transition: width 0.15s ease-out; }
-
-.checkmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
-.checkmark svg { width: 140px; height: 140px; opacity: 0; transform: scale(0.5); filter: drop-shadow(0 6px 16px rgba(47,143,91,0.5)); }
-.checkmark.show svg { opacity: 1; transform: scale(1); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-
-/* --- Result Card & Score Popup --- */
-.result-card {
-  max-width: 540px; margin: 36px auto; background: var(--paper); padding: 40px 36px; border-radius: var(--radius);
-  box-shadow: var(--shadow-lg); text-align: center; border: 3px solid var(--gold); position: relative;
-}
-.result-card .score-display {
-  background: linear-gradient(135deg, #fffcf5, #f7f0e1); border: 2px solid var(--gold); border-radius: 18px;
-  padding: 20px; margin: 16px 0 24px; box-shadow: var(--shadow);
-}
-.result-card .score { font-family: 'Chonburi'; font-size: 58px; color: var(--maroon-dark); margin: 4px 0; }
-.result-card .bonus-badge {
-  display: inline-block; background: linear-gradient(135deg, var(--gold), #b37e20); color: #2d1d03;
-  padding: 6px 18px; border-radius: 999px; font-weight: 800; font-size: 14px; margin-top: 6px; box-shadow: 0 4px 12px rgba(201,147,46,0.3);
-}
-
-/* --- Dashboard --- */
-.student-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 18px; }
-.student-item {
-  background: var(--paper); padding: 18px 20px; border-radius: 16px; box-shadow: var(--shadow); cursor: pointer;
-  border: 2px solid transparent; transition: all 0.2s;
-}
-.student-item:hover { border-color: var(--gold); transform: translateY(-3px); }
-.student-item h4 { margin: 0 0 6px; color: var(--maroon-dark); font-size: 17px; }
-.student-item span { font-size: 13px; color: var(--gray-sub); display: block; }
-
-table.hist { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--paper); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
-table.hist th, table.hist td { padding: 14px 18px; text-align: left; font-size: 14px; border-bottom: 1px solid #eee0c8; }
-table.hist th { background: var(--maroon); color: #fff; font-weight: 600; font-family: 'Chonburi'; font-size: 13px; }
-.bar-track { background: #eee0c8; border-radius: 6px; height: 10px; width: 120px; overflow: hidden; }
-.bar-fill { height: 100%; background: var(--teal); }
-.hint { font-size: 13px; color: var(--gray-sub); margin-top: 6px; line-height: 1.5; }
-</style>
+  <!-- MediaPipe AI CDN Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
-<div class="app">
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="brand">
-      <div class="mark"></div>
-      <div>
-        <h1>นาฏยรำไทย AI Challenge</h1>
-        <span>AI THAI DANCE GESTURE MASTER (ม.1)</span>
-      </div>
-    </div>
-    <div class="topbar-controls">
-      <button class="audio-toggle-btn" id="btnToggleAudio">🔊 ดนตรี: เปิด</button>
-      <button class="navbtn" id="btnHome">🏠 หน้าหลัก</button>
-    </div>
-  </div>
-
-  <!-- HOME SCREEN -->
-  <div class="screen active" id="screen-home">
-    <div class="hero-text-block">
-      <div class="hero-badge">✨ สื่อการเรียนรู้รายวิชานาฏศิลป์</div>
-      <h2>การพัฒนาทักษะการปฏิบัตินาฏยศัพท์ด้วย AI</h2>
-      <p>สื่อการเรียนรู้รายวิชานาฏศิลป์ เพื่อพัฒนาทักษะการปฏิบัตินาฏยศัพท์ส่วนมือของนักเรียนชั้นมัธยมศึกษาปีที่ 1 ด้วยเทคโนโลยีตรวจจับท่าทางปัญญาประดิษฐ์ (AI Gesture Recognition)</p>
-    </div>
-    
-    <div class="flourish">
-      <div class="line"></div>
-      <svg width="30" height="30" viewBox="0 0 26 26"><path d="M13 2 C 16 8, 24 8, 22 13 C 24 18, 16 18, 13 24 C 10 18, 2 18, 4 13 C 2 8, 10 8, 13 2 Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-      <div class="line"></div>
-    </div>
-
-    <div class="role-grid">
-      <div class="role-card" id="cardTeacher">
-        <span class="icon">🪷</span>
-        <h3>เมนูสำหรับครูผู้สอน</h3>
-        <span style="font-size:12px; color:var(--gold); font-weight:700;">🔒 ต้องใส่รหัสผ่าน</span>
-      </div>
-      <div class="role-card" id="cardStudent">
-        <span class="icon">💃</span>
-        <h3>เมนูสำหรับนักเรียน</h3>
-      </div>
-    </div>
-  </div>
-
-  <!-- TEACHER PASSWORD MODAL -->
-  <div class="modal-backdrop" id="passModal">
-    <div class="modal-card" style="max-width:400px; text-align:center;">
-      <button class="modal-close" id="btnClosePassModal">✕</button>
-      <div style="font-size:44px; margin-bottom:8px;">🔒</div>
-      <h3 style="color:var(--maroon-dark); margin-top:0;">เข้าสู่เมนูครูผู้สอน</h3>
-      <p class="hint">กรุณากรอกรหัสผ่านเพื่อเข้าใช้งานระบบจัดการภาพต้นฉบับ</p>
-      <input type="password" id="teacherPassInput" placeholder="กรอกรหัสผ่าน 4 หลัก" style="width:100%; padding:12px 16px; border-radius:12px; border:2px solid #d9c9b3; font-size:18px; text-align:center; letter-spacing:4px; margin:16px 0; font-family:'Sarabun';" maxlength="10">
-      <div class="row" style="justify-content:center;">
-        <button class="btn btn-primary" id="btnConfirmPass">🔓 เข้าสู่ระบบ</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- TEACHER SCREEN: POSE MANAGEMENT & SYNC -->
-  <div class="screen" id="screen-teacher">
-    <div class="row" style="justify-content:space-between; margin-top:0;">
-      <div>
-        <h2 style="color:var(--maroon-dark); margin:0;">จัดการภาพต้นฉบับนาฏยศัพท์ 8 ท่า</h2>
-        <p class="hint" style="margin:4px 0 0;">อัปโหลดไฟล์ภาพต้นฉบับ ระบบจะสแกนพิกัดสร้างภาพอ้างอิงให้อัตโนมัติ</p>
-      </div>
-      <button class="btn btn-gold" id="btnGoDashboard">📊 ดูรายงานผลนักเรียน</button>
-    </div>
-
-    <!-- Data Transfer Panel -->
-    <div class="sync-panel">
-      <div>
-        <h4>📲 ถ่ายโอนข้อมูลภาพต้นฉบับข้ามอุปกรณ์ (PC ➔ มือถือ/แท็บเล็ต)</h4>
-        <p>คุณครูสามารถส่งออกไฟล์ชุดภาพ 8 ท่าจากคอมพิวเตอร์ นำไปกด "นำเข้า" ในโทรศัพท์มือถือหรือ iPad เครื่องอื่นๆ ได้ทันที!</p>
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-gold" id="btnExportData">📥 ส่งออกไฟล์ข้อมูล (JSON)</button>
-        <label class="btn btn-teal">
-          📤 นำเข้าไฟล์ข้อมูล (JSON)
-          <input type="file" id="importJsonInput" accept=".json" style="display:none;">
-        </label>
-      </div>
-    </div>
-
-    <!-- Bulk Upload Bar -->
-    <div class="sync-panel" style="margin-top:14px; background:#faf5eb; border-color:var(--teal);">
-      <div class="bulk-info">
-        <h4 style="color:var(--teal);">📂 อัปโหลดภาพต้นฉบับหลายไฟล์พร้อมกัน (Bulk Upload)</h4>
-        <p>เลือกไฟล์ภาพพร้อมกัน ระบบจะจัดเรียงและบีบอัดข้อมูลให้พอดีกับหน่วยความจำเครื่อง</p>
-      </div>
-      <label class="btn btn-teal">
-        📁 เลือกหลายไฟล์ภาพ
-        <input type="file" id="bulkFileInput" multiple accept="image/*" style="display:none;">
-      </label>
-    </div>
-
-    <div class="pose-grid" id="teacherGrid"></div>
-  </div>
-
-  <!-- UPLOAD / RECORD MODAL FOR SINGLE POSE -->
-  <div class="modal-backdrop" id="poseModal">
-    <div class="modal-card">
-      <button class="modal-close" id="btnCloseModal">✕</button>
-      <h3 style="color:var(--maroon-dark); margin-top:0;" id="modalTitle">อัปโหลดภาพต้นฉบับ: ตั้งวงบน</h3>
-
-      <!-- Tab Switcher & Direction Controls -->
-      <div class="row" style="margin-top:10px; justify-content:space-between;">
-        <div style="display:flex; gap:8px;">
-          <button class="btn btn-gold" id="tabUpload">🖼 อัปโหลดไฟล์ภาพจากเครื่อง</button>
-          <button class="btn btn-ghost" id="tabCamera">📸 ถ่ายด้วยกล้องสด</button>
-        </div>
-        <button class="btn btn-ghost" id="btnFlipDir" style="color:var(--teal); font-weight:700;">↔ พลิกกลับทิศทางภาพ</button>
-      </div>
-
-      <!-- Tab Content 1: File Upload -->
-      <div id="viewUpload" style="margin-top:14px;">
-        <div class="upload-box" id="dropZone">
-          <span class="up-icon">📤</span>
-          <p><strong>คลิกเพื่อเลือกไฟล์ภาพ</strong> หรือ ลากไฟล์มาวางที่นี่</p>
-          <span class="hint">รองรับภาพถ่ายของคุณครู ระบบสแกนและประมวลผลพิกัดให้อัตโนมัติ</span>
-          <input type="file" id="singleFileInput" accept="image/*" style="display:none;">
-        </div>
-      </div>
-
-      <!-- Tab Content 2: Live Camera -->
-      <div id="viewCamera" style="margin-top:14px; display:none;">
-        <div class="camera-box" style="margin:0 auto;">
-          <video id="recVideo" autoplay playsinline webkit-playsinline muted></video>
-          <div class="status-pill"><span class="dot" id="recDot"></span><span id="recStatus">กำลังเปิดกล้อง…</span></div>
-        </div>
-        <div class="row" style="justify-content:center; margin-top:14px;">
-          <button class="btn btn-primary" id="btnCapture">📸 ถ่ายภาพสด</button>
-        </div>
-      </div>
-
-      <!-- Preview Stage -->
-      <div class="preview-stage" id="previewStage" style="display:none;">
-        <div class="preview-box">
-          <h5>1. ภาพต้นฉบับ (Original Image)</h5>
-          <img id="imgOriginalPreview" alt="ภาพต้นฉบับ">
-        </div>
-        <div class="preview-box">
-          <h5>2. ภาพเงาสีดำตรวจจับ (Generated Black Silhouette)</h5>
-          <canvas id="canvasSilhouettePreview"></canvas>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="row" id="modalActions" style="justify-content:flex-end; display:none; margin-top:20px;">
-        <button class="btn btn-ghost" id="btnCancelModal">ยกเลิก</button>
-        <button class="btn btn-gold" id="btnSaveSingleRef">✅ บันทึกเป็นภาพอ้างอิง</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- TEACHER DASHBOARD -->
-  <div class="screen" id="screen-dashboard">
-    <button class="navbtn" id="btnBackTeacher">← กลับหน้าจัดการท่า</button>
-    <h2 style="color:var(--maroon-dark); margin-top:16px;">รายงานผลการปฏิบัตินาฏยศัพท์นักเรียน</h2>
-    <div id="dashList" class="student-list"></div>
-    <div id="dashDetail"></div>
-  </div>
-
-  <!-- STUDENT LOGIN -->
-  <div class="screen" id="screen-login">
-    <div class="login-card">
-      <div style="font-size:48px; margin-bottom:10px;">💃</div>
-      <h2 style="margin:0; color:var(--maroon-dark)">เข้าสู่เกมทดสอบปฏิบัติ</h2>
-      <p class="hint">จัดวางร่างกายหน้าจอ (คอมพิวเตอร์ โน้ตบุค ไอแพด มือถือ) ให้ทาบตรงกับภาพต้นฉบับ (เวลา 180 วินาที)</p>
-      <input type="text" id="studentName" placeholder="เช่น เด็กชายสรวิชญ์ ปัญญาดี เลขที่ 1">
-      <div class="row" style="justify-content:center;">
-        <button class="btn btn-primary" id="btnStartGame">🎬 เริ่มเล่นเกม (180 วินาที)</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- GAME SCREEN -->
-  <div class="screen" id="screen-game">
-    <div class="game-top">
-      <div class="progress-dots" id="progressDots"></div>
-      <div class="timerbox" id="timerBox">⏱ 180</div>
-    </div>
-
-    <div class="pose-current">
-      <span class="num" id="gameNum">ท่าที่ 1 จาก 8</span>
-      <h2 id="gameName">ตั้งวงบน</h2>
-    </div>
-
-    <div class="stage-wrap">
-      <div class="camera-box" id="cameraBox">
-        <video id="gameVideo" autoplay playsinline webkit-playsinline muted></video>
-        <!-- Overlay Original Photo Layer by Default -->
-        <img class="overlay-img mode-original" id="gameOverlay">
-        
-        <div class="status-pill">
-          <span class="dot" id="gameDot"></span>
-          <span id="gameStatus">กำลังเตรียมความพร้อม AI…</span>
-        </div>
-
-        <!-- Preparation Delay Badge (3s countdown) -->
-        <div class="prep-badge" id="prepBadge" style="display:none;">
-          <span>⏳ เตรียมตัวจัดท่าทาง... (เริ่มตรวจใน <strong id="prepSec">3</strong>s)</span>
-        </div>
-
-        <div class="checkmark" id="checkmark">
-          <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="46" fill="#2F8F5B"/>
-            <path d="M28 52 L44 68 L74 34" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <!-- Overlay Customization Controls -->
-    <div class="overlay-controls" style="max-width:560px; margin:16px auto 0;">
-      <label>
-        รูปแบบภาพซ้อน:
-        <select id="overlayModeSelect" style="padding:6px 12px; border-radius:10px; border:1px solid #c8b8a4; font-family:'Sarabun'; font-size:13px; font-weight:700;">
-          <option value="original" selected>🖼 ภาพถ่ายครูจริง (Original Photo)</option>
-          <option value="silhouette">👥 ภาพเงาดำต้นฉบับ (Black Silhouette)</option>
-        </select>
-      </label>
-
-      <label>
-        ความโปร่งแสง:
-        <input type="range" id="opacitySlider" min="10" max="90" value="70">
-        <span id="opacityVal">70%</span>
-      </label>
-    </div>
-
-    <!-- Accuracy & Progress Fill Bar -->
-    <div class="match-fill"><i id="matchFill"></i></div>
-    <div style="text-align:center; font-size:13px; color:var(--maroon-dark); font-weight:700;" id="matchText">ระดับแขนตรงตามเงาต้นฉบับ: 0%</div>
-
-    <div class="row" style="justify-content:center; margin-top:16px;">
-      <button class="btn btn-ghost" id="btnSkip">⏭ ข้ามไปท่าถัดไป (Pass)</button>
-      <button class="btn btn-gold" id="btnStopTimer" disabled>⏹ สรุปผลและจบเกม</button>
-    </div>
-  </div>
-
-  <!-- RESULT SCREEN -->
-  <div class="screen" id="screen-result">
-    <div class="result-card">
-      <div style="font-size:56px; margin-bottom:4px;">🎉🏆✨</div>
-      <h2 style="margin:0; color:var(--maroon-dark);">ผลการทดสอบปฏิบัตินาฏยศัพท์</h2>
-      
-      <div class="score-display">
-        <div style="font-size:14px; color:var(--gray-sub); font-weight:700;">คะแนนการปฏิบัตินาฏยศัพท์รวม</div>
-        <div class="score" id="resTotalPoints">100</div>
-        <div style="font-size:15px; color:var(--maroon); font-weight:800;" id="resBasePoints">คะแนนท่าทาง: 80 คะแนน (8/8 ท่า)</div>
-        <div class="bonus-badge" id="resBonusBadge">⚡ โบนัสความเร็วพิเศษ: +20 คะแนน</div>
-      </div>
-
-      <div class="sub" id="resTime">เวลาที่ใช้รวม: 0 วินาที</div>
-      <div class="row" style="justify-content:center;">
-        <button class="btn btn-primary" id="btnReplay">🔁 เล่นอีกครั้ง</button>
-        <button class="btn btn-ghost" id="btnHome2">🏠 กลับหน้าหลัก</button>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<script>
-/* ---------------------------------------------------------------
-   POSES & CONFIGURATION (180s TIMER & 3s PREP DELAY)
---------------------------------------------------------------- */
-const POSES = [
-  { id: 'p1', name: 'ตั้งวงบน' },
-  { id: 'p2', name: 'ตั้งวงกลาง' },
-  { id: 'p3', name: 'ตั้งวงล่าง' },
-  { id: 'p4', name: 'จีบคว่ำ' },
-  { id: 'p5', name: 'จีบหงาย' },
-  { id: 'p6', name: 'จีบปรกข้าง' },
-  { id: 'p7', name: 'จีบส่งหลัง' },
-  { id: 'p8', name: 'จีบล่อแก้ว' }
-];
-
-const GRID_W = 40, GRID_H = 30;
-const GAME_SECONDS = 180;          // Total Game Timer = 180 seconds!
-const PREP_DELAY_SECONDS = 3;      // 3 Seconds Delay before AI starts pose detection!
-const TEACHER_PIN = '2568';         // Teacher Password PIN
-
-let poseRefs = {};
-
-function buildDefaultGrid(poseId) {
-  const gridArr = new Uint8Array(1200);
-  for (let y = 0; y < 30; y++) {
-    for (let x = 0; x < 40; x++) {
-      const idx = y * 40 + x;
-      if (y >= 4 && y <= 14 && (x >= 8 && x <= 32)) gridArr[idx] = 1;
-      if (y >= 8 && y <= 22 && (x >= 15 && x <= 25)) gridArr[idx] = 1;
-    }
-  }
-  return Array.from(gridArr).join('');
-}
-
-const DEFAULT_POSE_REFS = {};
-POSES.forEach(p => {
-  DEFAULT_POSE_REFS[p.id] = {
-    name: p.name,
-    originalImg: '',
-    thumb: '',
-    grid: buildDefaultGrid(p.id)
-  };
-});
-
-async function loadRefs() {
-  let loaded = {};
-  try {
-    let r = null;
-    if (window.storage && window.storage.get) {
-      r = await window.storage.get('pose-refs', true);
-    } else {
-      r = { value: localStorage.getItem('pose-refs') };
-    }
-    loaded = r && r.value ? JSON.parse(r.value) : {};
-  } catch (e) {
-    try {
-      const val = localStorage.getItem('pose-refs');
-      loaded = val ? JSON.parse(val) : {};
-    } catch(err) {}
-  }
-  poseRefs = Object.assign({}, DEFAULT_POSE_REFS, loaded);
-}
-
-async function saveRefs() {
-  const jsonStr = JSON.stringify(poseRefs);
-  try {
-    if (window.storage && window.storage.set) {
-      await window.storage.set('pose-refs', jsonStr, true);
-    }
-  } catch (e) {}
-  try {
-    localStorage.setItem('pose-refs', jsonStr);
-  } catch (e) {}
-}
-
-function compressImageDataUrl(dataUrl, maxW = 480, maxH = 360, quality = 0.75) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      let w = img.naturalWidth || img.width || 640;
-      let h = img.naturalHeight || img.height || 480;
-      if (w > maxW || h > maxH) {
-        const ratio = Math.min(maxW / w, maxH / h);
-        w = Math.round(w * ratio);
-        h = Math.round(h * ratio);
-      }
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(c.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}
-
-function slug(name) { return name.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9ก-๙_]/g,''); }
-
-async function loadStudentList() {
-  try {
-    let r = null;
-    if (window.storage && window.storage.get) {
-      r = await window.storage.get('student-list', true);
-    } else {
-      r = { value: localStorage.getItem('student-list') };
-    }
-    return r && r.value ? JSON.parse(r.value) : [];
-  } catch (e) {
-    const val = localStorage.getItem('student-list');
-    return val ? JSON.parse(val) : [];
-  }
-}
-
-async function saveStudentList(list) {
-  const str = JSON.stringify(list);
-  try { if (window.storage && window.storage.set) await window.storage.set(key, str, true); } catch(e){}
-  try { localStorage.setItem('student-list', str); } catch(e){}
-}
-
-async function loadStudentSessions(name) {
-  const key = 'student:' + slug(name);
-  try {
-    let r = null;
-    if (window.storage && window.storage.get) {
-      r = await window.storage.get(key, true);
-    } else {
-      r = { value: localStorage.getItem(key) };
-    }
-    return r && r.value ? JSON.parse(r.value) : [];
-  } catch(e) {
-    const val = localStorage.getItem(key);
-    return val ? JSON.parse(val) : [];
-  }
-}
-
-async function appendStudentSession(name, session) {
-  const key = 'student:' + slug(name);
-  let sessions = await loadStudentSessions(name);
-  sessions.push(session);
-  const str = JSON.stringify(sessions);
-  try { if (window.storage && window.storage.set) await window.storage.set(key, str, true); } catch(e){}
-  try { localStorage.setItem(key, str); } catch(e){}
-
-  let list = await loadStudentList();
-  if (!list.find(s => s.slug === slug(name))) {
-    list.push({ slug: slug(name), name });
-    await saveStudentList(list);
-  }
-}
-
-/* ---------------------------------------------------------------
-   TEACHER PASSWORD PROTECTION MODAL (PIN: 2568)
---------------------------------------------------------------- */
-document.getElementById('cardTeacher').onclick = () => {
-  document.getElementById('teacherPassInput').value = '';
-  document.getElementById('passModal').classList.add('active');
-  setTimeout(() => document.getElementById('teacherPassInput').focus(), 150);
-};
-
-document.getElementById('btnClosePassModal').onclick = () => {
-  document.getElementById('passModal').classList.remove('active');
-};
-
-document.getElementById('btnConfirmPass').onclick = checkTeacherPassword;
-document.getElementById('teacherPassInput').onkeyup = (e) => {
-  if (e.key === 'Enter') checkTeacherPassword();
-};
-
-function checkTeacherPassword() {
-  const input = document.getElementById('teacherPassInput').value.trim();
-  if (input === TEACHER_PIN) {
-    document.getElementById('passModal').classList.remove('active');
-    loadRefs().then(() => renderTeacherGrid());
-    showScreen('screen-teacher');
-  } else {
-    alert('🔒 รหัสผ่านไม่ถูกต้อง! (เฉพาะครูผู้สอนเท่านั้น)');
-    document.getElementById('teacherPassInput').value = '';
-    document.getElementById('teacherPassInput').focus();
-  }
-}
-
-/* ---------------------------------------------------------------
-   DATA EXPORT & IMPORT UTILITIES
---------------------------------------------------------------- */
-document.getElementById('btnExportData').onclick = () => {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(poseRefs));
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", "thai_dance_poses_ref.json");
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
-  alert('📥 บันทึกไฟล์ข้อมูลภาพ thai_dance_poses_ref.json เรียบร้อย! นำไฟล์นี้ไปกด "นำเข้า" ในมือถือหรืออุปกรณ์อื่นๆ ได้เลยครับ');
-};
-
-document.getElementById('importJsonInput').onchange = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async (evt) => {
-    try {
-      const importedData = JSON.parse(evt.target.result);
-      poseRefs = Object.assign({}, DEFAULT_POSE_REFS, importedData);
-      await saveRefs();
-      renderTeacherGrid();
-      alert('✅ นำเข้าข้อมูลภาพต้นฉบับครบทุกท่าเรียบร้อยแล้ว!');
-    } catch(err) {
-      alert('❌ ไม่สามารถอ่านไฟล์ JSON ได้ กรุณาตรวจสอบไฟล์');
-    }
-  };
-  reader.readAsText(file);
-};
-
-/* ---------------------------------------------------------------
-   NAVIGATION LOGIC
---------------------------------------------------------------- */
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const target = document.getElementById(id);
-  if (target) target.classList.add('active');
-}
-
-document.getElementById('btnHome').onclick = () => { stopAllCameras(); showScreen('screen-home'); };
-document.getElementById('btnHome2').onclick = () => { stopAllCameras(); showScreen('screen-home'); };
-
-document.getElementById('cardStudent').onclick = () => {
-  loadRefs();
-  showScreen('screen-login');
-};
-
-document.getElementById('btnGoDashboard').onclick = () => { openDashboard(); };
-document.getElementById('btnBackTeacher').onclick = () => { showScreen('screen-teacher'); };
-
-/* ---------------------------------------------------------------
-   GUARANTEED WEB AUDIO SYNTHESIZER & VICTORY FANFARE MELODY
---------------------------------------------------------------- */
-let audioCtx = null;
-let bgMusicInterval = null;
-let soundEnabled = true;
-
-function unlockAudio() {
-  if (!audioCtx) {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AudioCtx();
-  }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-}
-
-window.addEventListener('click', unlockAudio, { passive: true });
-window.addEventListener('touchstart', unlockAudio, { passive: true });
-
-const btnToggleAudio = document.getElementById('btnToggleAudio');
-btnToggleAudio.onclick = () => {
-  unlockAudio();
-  soundEnabled = !soundEnabled;
-  if (soundEnabled) {
-    btnToggleAudio.className = 'audio-toggle-btn';
-    btnToggleAudio.textContent = '🔊 ดนตรี: เปิด';
-    startExcitingMusic();
-  } else {
-    btnToggleAudio.className = 'audio-toggle-btn muted';
-    btnToggleAudio.textContent = '🔇 ดนตรี: ปิด';
-    stopExcitingMusic();
-  }
-};
-
-function startExcitingMusic() {
-  unlockAudio();
-  stopExcitingMusic();
-  if (!soundEnabled) return;
-
-  const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 392.00, 329.63, 293.66];
-  let step = 0;
-
-  bgMusicInterval = setInterval(() => {
-    if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
-    try {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.22);
-      step++;
-    } catch(e){}
-  }, 240);
-}
-
-function stopExcitingMusic() {
-  if (bgMusicInterval) {
-    clearInterval(bgMusicInterval);
-    bgMusicInterval = null;
-  }
-}
-
-// Sparkling Bell Chime Effect Notification (เสียงกระดิ่งดังกังวาน ✨🔔)
-function playBellChime() {
-  unlockAudio();
-  if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
-  try {
-    const freqs = [1046.50, 1318.51, 1567.98, 2093.00];
-    freqs.forEach((freq, idx) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
-      
-      gain.gain.setValueAtTime(0.45, audioCtx.currentTime + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + idx * 0.08 + 1.2);
-      
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(audioCtx.currentTime + idx * 0.08);
-      osc.stop(audioCtx.currentTime + idx * 0.08 + 1.2);
-    });
-  } catch(e){}
-}
-
-// Triumphant Victory Fanfare Melody (เสียงดนตรีแสดงความยินดี 🎉🎺)
-function playVictoryFanfare() {
-  unlockAudio();
-  if (!soundEnabled || !audioCtx || audioCtx.state !== 'running') return;
-  try {
-    const melody = [
-      { f: 523.25, d: 0.18 }, // C5
-      { f: 659.25, d: 0.18 }, // E5
-      { f: 783.99, d: 0.18 }, // G5
-      { f: 1046.50, d: 0.35 },// C6
-      { f: 880.00, d: 0.18 }, // A5
-      { f: 1046.50, d: 0.60 } // C6
-    ];
-    let now = audioCtx.currentTime;
-    melody.forEach(note => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(note.f, now);
-      gain.gain.setValueAtTime(0.4, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + note.d);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + note.d);
-      now += note.d * 0.9;
-    });
-  } catch(e){}
-}
-
-function playSkipSound() {
-  unlockAudio();
-  if (!soundEnabled || !audioCtx) return;
-  try {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.15);
-  } catch(e){}
-}
-
-/* ---------------------------------------------------------------
-   MEDIAPIPE SELFIE SEGMENTATION MODEL SETUP & CAMERA
---------------------------------------------------------------- */
-let segModel = null;
-function getSegModel() {
-  if (segModel) return segModel;
-  segModel = new SelfieSegmentation({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
-  });
-  segModel.setOptions({ modelSelection: 1 });
-  return segModel;
-}
-
-async function startCamera(videoEl) {
-  videoEl.setAttribute('playsinline', 'true');
-  videoEl.setAttribute('webkit-playsinline', 'true');
-  videoEl.muted = true;
-
-  const constraintOptions = [
-    { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
-    { video: { facingMode: 'user' }, audio: false },
-    { video: true, audio: false }
-  ];
-
-  let stream = null;
-  let lastError = null;
-
-  for (const constraint of constraintOptions) {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(constraint);
-      if (stream) break;
-    } catch (e) {
-      lastError = e;
-    }
-  }
-
-  if (!stream) {
-    throw lastError || new Error("ไม่สามารถเปิดใช้งานกล้องได้ โปรดตรวจสอบการอนุญาตใช้งานกล้อง (Camera Permission)");
-  }
-
-  videoEl.srcObject = stream;
-  await new Promise(res => {
-    videoEl.onloadedmetadata = () => {
-      videoEl.play().then(res).catch(res);
-    };
-  });
-  return stream;
-}
-
-function stopStream(videoEl) {
-  if (videoEl && videoEl.srcObject) {
-    videoEl.srcObject.getTracks().forEach(t => t.stop());
-    videoEl.srcObject = null;
-  }
-}
-
-function stopAllCameras() {
-  stopStream(document.getElementById('recVideo'));
-  stopStream(document.getElementById('gameVideo'));
-  recLoopActive = false; gameLoopActive = false;
-  stopExcitingMusic();
-}
-
-// MULTI-CHANNEL PIXEL DETECTOR (R, G, B, OR ALPHA > 50)
-function maskToGrid(maskSource, srcW, srcH, flip = false) {
-  const c = document.createElement('canvas');
-  c.width = GRID_W; c.height = GRID_H;
-  const ctx = c.getContext('2d');
-  ctx.save();
-  if (flip) {
-    ctx.translate(GRID_W, 0); ctx.scale(-1, 1);
-  }
-  ctx.drawImage(maskSource, 0, 0, srcW, srcH, 0, 0, GRID_W, GRID_H);
-  ctx.restore();
-
-  const data = ctx.getImageData(0, 0, GRID_W, GRID_H).data;
-  const grid = new Uint8Array(GRID_W * GRID_H);
-  for (let i = 0; i < grid.length; i++) {
-    const rVal = data[i * 4];
-    const gVal = data[i * 4 + 1];
-    const bVal = data[i * 4 + 2];
-    const aVal = data[i * 4 + 3];
-    grid[i] = (rVal > 50 || gVal > 50 || bVal > 50 || aVal > 50) ? 1 : 0;
-  }
-  return grid;
-}
-
-function renderSilhouettePNG(maskSource, srcW, srcH, flip = false) {
-  const W = 320, H = 240;
-  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
-  const tctx = tmp.getContext('2d');
-  tctx.save();
-  if (flip) {
-    tctx.translate(W, 0); tctx.scale(-1, 1);
-  }
-  tctx.drawImage(maskSource, 0, 0, srcW, srcH, 0, 0, W, H);
-  tctx.restore();
-
-  const md = tctx.getImageData(0, 0, W, H);
-  const alphaCanvas = document.createElement('canvas'); alphaCanvas.width = W; alphaCanvas.height = H;
-  const actx = alphaCanvas.getContext('2d');
-  const outImg = actx.createImageData(W, H);
-  for (let i = 0; i < md.data.length; i += 4) {
-    const v = (md.data[i] > 50 || md.data[i+3] > 50) ? 255 : 0;
-    outImg.data[i] = 0; outImg.data[i+1] = 0; outImg.data[i+2] = 0; outImg.data[i+3] = v;
-  }
-  actx.putImageData(outImg, 0, 0);
-
-  const out = document.createElement('canvas'); out.width = W; out.height = H;
-  const octx = out.getContext('2d');
-  
-  const offsets = [[-3,0],[3,0],[0,-3],[0,3],[-3,-3],[3,3],[-3,3],[3,-3]];
-  offsets.forEach(([dx,dy]) => {
-    octx.drawImage(tintCanvas(alphaCanvas, '#C0392B'), dx, dy);
-  });
-  octx.drawImage(tintCanvas(alphaCanvas, '#111111'), 0, 0);
-  return out.toDataURL('image/png');
-}
-
-function tintCanvas(alphaCanvas, color) {
-  const c = document.createElement('canvas'); c.width = alphaCanvas.width; c.height = alphaCanvas.height;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = color; ctx.fillRect(0, 0, c.width, c.height);
-  ctx.globalCompositeOperation = 'destination-in';
-  ctx.drawImage(alphaCanvas, 0, 0);
-  return c;
-}
-
-// FLEXIBLE ARM & GESTURE LEVEL OVERLAP ALGORITHM
-function getDilatedGrid(grid, radius = 8) {
-  const out = new Uint8Array(GRID_W * GRID_H);
-  for (let y = 0; y < GRID_H; y++) {
-    for (let x = 0; x < GRID_W; x++) {
-      if (grid[y * GRID_W + x] === 1) {
-        for (let dy = -radius; dy <= radius; dy++) {
-          for (let dx = -radius; dx <= radius; dx++) {
-            const ny = y + dy, nx = x + dx;
-            if (ny >= 0 && ny < GRID_H && nx >= 0 && nx < GRID_W) {
-              out[ny * GRID_W + nx] = 1;
-            }
-          }
-        }
-      }
-    }
-  }
-  return out;
-}
-
-function evaluatePoseAccuracy(liveGrid, refGrid) {
-  let refActiveCount = 0;
-  let liveActiveCount = 0;
-  let overlapCount = 0;
-
-  // Generous 8-pixel dilation radius to accommodate any student body size
-  const dilatedRef = getDilatedGrid(refGrid, 8);
-
-  for (let i = 0; i < liveGrid.length; i++) {
-    if (refGrid[i] === 1) refActiveCount++;
-    if (liveGrid[i] === 1) {
-      liveActiveCount++;
-      if (dilatedRef[i] === 1) overlapCount++;
-    }
-  }
-
-  if (liveActiveCount < 5 || refActiveCount === 0) return 0;
-
-  // Measure coverage of target pose area (does NOT penalize student body parts sticking out)
-  const armCoverageScore = overlapCount / refActiveCount;
-  return armCoverageScore;
-}
-
-function gridToString(grid) { return Array.from(grid).join(''); }
-function stringToGrid(str) { return new Uint8Array(str.split('').map(Number)); }
-
-/* ---------------------------------------------------------------
-   TEACHER MODE
---------------------------------------------------------------- */
-function renderTeacherGrid() {
-  const grid = document.getElementById('teacherGrid');
-  grid.innerHTML = '';
-  POSES.forEach((p, idx) => {
-    const ref = poseRefs[p.id];
-    const card = document.createElement('div');
-    card.className = 'pose-card';
-    card.innerHTML = `
-      <div class="pose-thumb">
-        ${ref && (ref.originalImg || ref.thumb) ? `<img src="${ref.originalImg || ref.thumb}" alt="${p.name}">` : 'ยังไม่มีภาพต้นฉบับ'}
-      </div>
-      <div class="pose-meta">
+  <div id="app">
+    <!-- Header Bar -->
+    <header class="game-header">
+      <div class="brand-title">
+        <span class="brand-logo">🎭</span>
         <div>
-          <div class="num">ท่าที่ ${idx + 1}</div>
-          <h4>${p.name}</h4>
-          <span class="tag ${ref ? 'done' : 'todo'}">${ref ? '✓ บันทึกสำเร็จ' : 'ยังไม่อัปโหลด'}</span>
+          <h1>นาฏยศัพท์ ขยับให้ตรงเงา</h1>
+          <div class="brand-subtitle">เกม AI ตรวจจับท่าทางนาฏศิลป์ไทย โดย คุณครูนรีรัตน์  ธนาวัชรากุล</div>
         </div>
-        <div class="pose-card-actions">
-          <button class="btn btn-gold" style="padding:8px 14px; font-size:13px; width:100%;" onclick="openPoseModal('${p.id}')">
-            ${ref ? '✏️ เปลี่ยนภาพ' : '📤 อัปโหลดภาพ'}
-          </button>
+      </div>
+      <div class="header-controls">
+        <button id="btn-switch-camera" class="btn-icon" title="สลับกล้องหน้า/กล้องหลัง">📷</button>
+        <button id="btn-toggle-sound" class="btn-icon" title="เปิด/ปิดเสียงดนตรี">🔊</button>
+        <button id="btn-teacher-mode" class="btn-gold">🔒 โหมดครู</button>
+      </div>
+    </header>
+
+    <!-- SCREEN 1: START / STUDENT LOGIN -->
+    <section id="screen-start" class="screen active">
+      <div class="start-container">
+        <h2 class="start-title">ยินดีต้อนรับเข้าสู่เกม AI</h2>
+        <p class="start-desc">
+          การพัฒนาทักษะการปฏิบัตินาฏยศัพท์ด้วยเกม AI ปัญญาประดิษฐ์<br>
+          โดย คุณครูนรีรัตน์  ธนาวัชรากุล<br>
+          ให้นักเรียนพิมพ์ชื่อ-นามสกุล ก่อนกดเริ่มเล่นเกม
+        </p>
+
+        <div class="input-group">
+          <label for="input-student-name">👤 ชื่อ - นามสกุล นักเรียน (ม.1):</label>
+          <input type="text" id="input-student-name" class="input-control" placeholder="เช่น ด.ช. สมชาย ใจดี ม.1/1 เลขที่ 5" autofocus />
         </div>
-      </div>`;
-    grid.appendChild(card);
-  });
-}
 
-let activeModalPoseId = null;
-let currentProcessedGrid = null;
-let currentProcessedSilhouettePNG = null;
-let currentOriginalDataURL = null;
-let isFlipped = false;
-let currentSegResults = null;
-let currentImgSource = null;
+        <div style="text-align: left; margin-bottom: 8px; font-weight: 600; color: var(--thai-gold-light); font-size: 0.9rem;">
+          🎯 ท่านาฏยศัพท์ส่วนมือที่ใช้ทดสอบ (8 ท่า):
+        </div>
+        <div class="posture-grid-preview">
+          <div class="posture-badge">1. ตั้งวงบน</div>
+          <div class="posture-badge">2. ตั้งวงกลาง</div>
+          <div class="posture-badge">3. ตั้งวงล่าง</div>
+          <div class="posture-badge">4. จีบคว่ำ</div>
+          <div class="posture-badge">5. จีบหงาย</div>
+          <div class="posture-badge">6. จีบปรกข้าง</div>
+          <div class="posture-badge">7. จีบส่งหลัง</div>
+          <div class="posture-badge">8. จีบล่อแก้ว</div>
+        </div>
 
-function openPoseModal(poseId) {
-  activeModalPoseId = poseId;
-  isFlipped = false;
-  const pose = POSES.find(p => p.id === poseId);
-  document.getElementById('modalTitle').textContent = `อัปโหลดภาพต้นฉบับ: ${pose.name}`;
-  document.getElementById('previewStage').style.display = 'none';
-  document.getElementById('modalActions').style.display = 'none';
-  
-  switchTab('upload');
-  document.getElementById('poseModal').classList.add('active');
-}
+        <button id="btn-start-game" class="btn-gold" style="width: 100%; justify-content: center; font-size: 1.3rem; padding: 14px;">
+          🚀 เริ่มเล่นเกม (Start Game)
+        </button>
+      </div>
+    </section>
 
-document.getElementById('btnCloseModal').onclick = closeModal;
-document.getElementById('btnCancelModal').onclick = closeModal;
-function closeModal() {
-  document.getElementById('poseModal').classList.remove('active');
-  stopStream(document.getElementById('recVideo'));
-  recLoopActive = false;
-}
+    <!-- SCREEN 2: GAMEPLAY SCREEN -->
+    <section id="screen-game" class="screen">
+      <div class="game-layout">
+        
+        <!-- Viewport Card (Camera & Skeleton Canvas) -->
+        <div class="viewport-card">
+          <!-- Top Status Bar -->
+          <div class="top-status-bar">
+            <div class="timer-pill">
+              ⏱️ <span id="timer-text">3:00</span>
+            </div>
+            <div class="score-pill">
+              🪙 <span id="score-text">0</span> คะแนน
+            </div>
+            <div class="progress-pill">
+              <span id="progress-text">ทำสำเร็จ 0 / 8 ท่า</span>
+            </div>
+          </div>
 
-document.getElementById('tabUpload').onclick = () => switchTab('upload');
-document.getElementById('tabCamera').onclick = () => switchTab('camera');
+          <!-- Video & Canvas Overlay -->
+          <video id="webcam-video" class="video-element" autoplay playsinline muted></video>
+          <canvas id="skeleton-canvas" class="skeleton-canvas"></canvas>
 
-function switchTab(tab) {
-  if (tab === 'upload') {
-    document.getElementById('tabUpload').className = 'btn btn-gold';
-    document.getElementById('tabCamera').className = 'btn btn-ghost';
-    document.getElementById('viewUpload').style.display = 'block';
-    document.getElementById('viewCamera').style.display = 'none';
-    stopStream(document.getElementById('recVideo'));
-    recLoopActive = false;
-  } else {
-    document.getElementById('tabUpload').className = 'btn btn-ghost';
-    document.getElementById('tabCamera').className = 'btn btn-gold';
-    document.getElementById('viewUpload').style.display = 'none';
-    document.getElementById('viewCamera').style.display = 'block';
-    initModalCamera();
-  }
-}
+          <!-- AI Scanning Sweep Laser Line Overlay -->
+          <div id="scan-laser-line" class="scan-laser-line"></div>
 
-document.getElementById('btnFlipDir').onclick = () => {
-  isFlipped = !isFlipped;
-  if (currentSegResults && currentImgSource) {
-    updateModalPreviews(currentSegResults, currentImgSource);
-  }
-};
+          <!-- Silhouette Target Image Overlay (เงาลางๆ ต้นฉบับ) -->
+          <div class="silhouette-overlay">
+            <img id="silhouette-overlay-img" src="" alt="Silhouette Overlay" />
+          </div>
 
-const dropZone = document.getElementById('dropZone');
-const singleFileInput = document.getElementById('singleFileInput');
-dropZone.onclick = () => singleFileInput.click();
-singleFileInput.onchange = (e) => { if (e.target.files[0]) handleUploadedFile(e.target.files[0]); };
+          <!-- Falling 5-Baht Coins Rain Effect Container -->
+          <div id="coin-rain-container" class="coin-rain-container"></div>
 
-dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
-dropZone.ondragleave = () => dropZone.classList.remove('dragover');
-dropZone.ondrop = (e) => {
-  e.preventDefault(); dropZone.classList.remove('dragover');
-  if (e.dataTransfer.files[0]) handleUploadedFile(e.dataTransfer.files[0]);
-};
+          <!-- 3-Second Hold Delay Progress Ring -->
+          <div class="hold-timer-ring">
+            <div id="hold-text" class="hold-text">จัดเงาลางๆ ของตนเอง ทาบกับเงาลางๆ ต้นฉบับ</div>
+            <div class="progress-bar-track">
+              <div id="hold-progress-bar" class="progress-bar-fill"></div>
+            </div>
+          </div>
 
-async function handleUploadedFile(file) {
-  const reader = new FileReader();
-  reader.onload = async (evt) => {
-    const rawDataUrl = evt.target.result;
-    currentOriginalDataURL = await compressImageDataUrl(rawDataUrl, 480, 360, 0.75);
-    await processImageForSegmentation(currentOriginalDataURL);
-  };
-  reader.readAsDataURL(file);
-}
+          <!-- Floating Success Pop-up Modal (✅ Correct!) -->
+          <div id="success-pop-modal" class="success-pop-modal">
+            <div class="checkmark-icon">✅</div>
+            <div class="success-title">ถูกต้องแล้ว! +10 คะแนน 🪙</div>
+          </div>
+        </div>
 
-async function processImageForSegmentation(dataUrl) {
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = async () => {
-    currentImgSource = img;
-    const model = getSegModel();
-    model.onResults((results) => {
-      currentSegResults = results;
-      updateModalPreviews(results, img);
-    });
-    await model.send({ image: img });
-  };
-  img.src = dataUrl;
-}
+        <!-- Sidebar Card (Target Guidance & Controls) -->
+        <div class="sidebar-card">
+          <div>
+            <div class="target-posture-header">
+              <span class="target-badge">ท่าเป้าหมาย</span>
+              <h2 id="target-name-text" class="target-name">1. ตั้งวงบน</h2>
+              <div id="target-level-text" class="target-level">ระดับสูง (คิ้ว/ศีรษะ)</div>
+            </div>
 
-function updateModalPreviews(results, imgSource) {
-  const w = imgSource.naturalWidth || imgSource.width || 480;
-  const h = imgSource.naturalHeight || imgSource.height || 360;
+            <!-- Target Reference Image Box -->
+            <div class="reference-img-box">
+              <img id="sidebar-ref-img" src="" alt="Reference Image" />
+            </div>
 
-  const origCanvas = document.createElement('canvas'); origCanvas.width = w; origCanvas.height = h;
-  const octx = origCanvas.getContext('2d');
-  if (isFlipped) {
-    octx.translate(w, 0); octx.scale(-1, 1);
-  }
-  octx.drawImage(imgSource, 0, 0, w, h);
-  const displayOriginalDataURL = origCanvas.toDataURL('image/jpeg', 0.75);
+            <!-- Guidance Description -->
+            <div id="target-desc-text" class="posture-desc-box">
+              ยกแขนตั้งวง ให้ปลายนิ้วมืออยู่ระดับคิ้ว หรือระดับส่วนบนของศีรษะ วงแขนโค้งสวยงาม
+            </div>
+          </div>
 
-  const grid = maskToGrid(results.segmentationMask, w, h, isFlipped);
-  const silhouettePNG = renderSilhouettePNG(results.segmentationMask, w, h, isFlipped);
+          <!-- Actions -->
+          <div class="action-buttons">
+            <button id="btn-skip" class="btn-skip">
+              ⏭️ ข้ามข้อนี้ไปก่อน
+            </button>
+          </div>
+        </div>
 
-  currentOriginalDataURL = displayOriginalDataURL;
-  currentProcessedGrid = gridToString(grid);
-  currentProcessedSilhouettePNG = silhouettePNG;
+      </div>
+    </section>
 
-  document.getElementById('imgOriginalPreview').src = displayOriginalDataURL;
-  const canvasPrev = document.getElementById('canvasSilhouettePreview');
-  const ctx = canvasPrev.getContext('2d');
-  const simg = new Image();
-  simg.onload = () => {
-    canvasPrev.width = simg.width; canvasPrev.height = simg.height;
-    ctx.drawImage(simg, 0, 0);
-  };
-  simg.src = silhouettePNG;
+    <!-- SCREEN 3: SUMMARY / ASSESSMENT -->
+    <section id="screen-summary" class="screen">
+      <div class="summary-container">
+        <h2 class="summary-title">🎉 สรุปผลการปฏิบัติการเรียนรู้</h2>
+        <div id="summary-student-name" style="font-size: 1.3rem; color: var(--thai-gold-light); margin-bottom: 20px; font-weight: 600;">
+          นักเรียน: 
+        </div>
 
-  document.getElementById('previewStage').style.display = 'grid';
-  document.getElementById('modalActions').style.display = 'flex';
-}
+        <div class="summary-score-card" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="score-box">
+            <div id="summary-completed" class="score-num">8 / 8</div>
+            <div class="score-label">จำนวนท่าที่ทำสำเร็จ</div>
+          </div>
+          <div class="score-box">
+            <div id="summary-time" class="score-num" style="color: #4FC3F7;">1:45</div>
+            <div class="score-label">เวลาที่ใช้รวม</div>
+          </div>
+          <div class="score-box">
+            <div id="summary-total-score" class="score-num" style="color: #FFD700;">100</div>
+            <div class="score-label">คะแนนรวมสุทธิ 🪙</div>
+          </div>
+        </div>
 
-document.getElementById('bulkFileInput').onchange = async (e) => {
-  const files = Array.from(e.target.files);
-  if (files.length === 0) return;
+        <!-- Score Breakdown details -->
+        <div style="background: rgba(15,2,5,0.7); border: 1px solid var(--thai-gold); border-radius: 14px; padding: 14px 20px; margin-bottom: 20px; text-align: left; font-size: 0.95rem; line-height: 1.8;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>🪙 คะแนนฐาน (ข้อละ 10 คะแนน):</span>
+            <strong id="summary-base-score">80 คะแนน</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>⚡ คะแนนพิเศษความเร็ว:</span>
+            <strong id="summary-bonus-score" style="color: #00E676;">+20 คะแนน</strong>
+          </div>
+        </div>
 
-  alert(`กำลังประมวลผลไฟล์ภาพ ${files.length} ไฟล์ โปรดรอสักครู่...`);
-  
-  for (let i = 0; i < files.length && i < POSES.length; i++) {
-    const file = files[i];
-    const poseId = POSES[i].id;
-    await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = async (evt) => {
-        const compressedDataUrl = await compressImageDataUrl(evt.target.result, 480, 360, 0.75);
-        const img = new Image();
-        img.onload = async () => {
-          const model = getSegModel();
-          model.onResults(async (results) => {
-            const w = img.naturalWidth || img.width;
-            const h = img.naturalHeight || img.height;
-            const grid = maskToGrid(results.segmentationMask, w, h, false);
-            const silhouettePNG = renderSilhouettePNG(results.segmentationMask, w, h, false);
+        <div id="summary-badge" style="font-size: 1.2rem; font-weight: 700; margin-bottom: 28px; padding: 12px; background: rgba(0,230,118,0.15); border-radius: 12px; border: 1px solid var(--emerald-green);">
+          🏆 ระดับผลการประเมิน: ดีเยี่ยม (ผ่านเกณฑ์ PA 100%)
+        </div>
 
-            poseRefs[poseId] = {
-              name: POSES[i].name,
-              originalImg: compressedDataUrl,
-              thumb: silhouettePNG,
-              grid: gridToString(grid)
-            };
-            resolve();
-          });
-          await model.send({ image: compressedDataUrl });
-        };
-        img.src = compressedDataUrl;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+        <button id="btn-play-again" class="btn-gold" style="width: 100%; justify-content: center; font-size: 1.2rem; padding: 14px;">
+          🔄 เล่นใหม่อีกครั้ง (Play Again)
+        </button>
+      </div>
+    </section>
 
-  await saveRefs();
-  renderTeacherGrid();
-  alert('✅ อัปโหลดภาพครบทุกท่าเรียบร้อยแล้ว!');
-};
+  </div>
 
-document.getElementById('btnSaveSingleRef').onclick = async () => {
-  if (!activeModalPoseId || !currentOriginalDataURL || !currentProcessedGrid) return;
-  const pose = POSES.find(p => p.id === activeModalPoseId);
-  poseRefs[activeModalPoseId] = {
-    name: pose.name,
-    originalImg: currentOriginalDataURL,
-    thumb: currentProcessedSilhouettePNG,
-    grid: currentProcessedGrid
-  };
-  await saveRefs();
-  closeModal();
-  renderTeacherGrid();
-  alert(`✅ บันทึกภาพต้นฉบับ "${pose.name}" เรียบร้อยแล้ว!`);
-};
-
-let recLoopActive = false, recLatestResults = null;
-async function initModalCamera() {
-  const videoEl = document.getElementById('recVideo');
-  document.getElementById('recStatus').textContent = 'กำลังเปิดกล้อง...';
-  try {
-    await startCamera(videoEl);
-  } catch (e) {
-    document.getElementById('recStatus').textContent = 'ไม่สามารถเปิดกล้องได้: ' + e.message;
-    return;
-  }
-  const model = getSegModel();
-  model.onResults((r) => {
-    recLatestResults = r;
-    document.getElementById('recDot').classList.add('ready');
-    document.getElementById('recStatus').textContent = 'พร้อมจับภาพ';
-  });
-  recLoopActive = true;
-  recLoop();
-}
-
-async function recLoop() {
-  if (!recLoopActive) return;
-  const videoEl = document.getElementById('recVideo');
-  if (videoEl && videoEl.readyState >= 2) {
-    await getSegModel().send({ image: videoEl });
-  }
-  if (recLoopActive) requestAnimationFrame(recLoop);
-}
-
-document.getElementById('btnCapture').onclick = () => {
-  if (!recLatestResults) return;
-  const videoEl = document.getElementById('recVideo');
-  currentImgSource = videoEl;
-  currentSegResults = recLatestResults;
-  updateModalPreviews(recLatestResults, videoEl);
-};
-
-/* ---------------------------------------------------------------
-   TEACHER DASHBOARD
---------------------------------------------------------------- */
-async function openDashboard() {
-  showScreen('screen-dashboard');
-  const list = await loadStudentList();
-  const wrap = document.getElementById('dashList');
-  document.getElementById('dashDetail').innerHTML = '';
-  if (list.length === 0) {
-    wrap.innerHTML = '<p class="hint">ยังไม่มีข้อมูลนักเรียนเข้าเล่นเกม</p>';
-    return;
-  }
-  wrap.innerHTML = '';
-  for (const s of list) {
-    const sessions = await loadStudentSessions(s.name);
-    const bestScore = sessions.reduce((m, x) => Math.max(m, (x.totalScore !== undefined ? x.totalScore : x.score * 10)), 0);
-    const div = document.createElement('div');
-    div.className = 'student-item';
-    div.innerHTML = `
-      <h4>${s.name}</h4>
-      <span>เข้าเล่นเกมแล้ว: ${sessions.length} ครั้ง</span>
-      <span>คะแนนสูงสุด: <strong>${bestScore} คะแนน</strong></span>`;
-    div.onclick = () => showStudentDetail(s.name, sessions);
-    wrap.appendChild(div);
-  }
-}
-
-function showStudentDetail(name, sessions) {
-  const el = document.getElementById('dashDetail');
-  sessions = sessions.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
-  let rows = sessions.map((s, i) => {
-    const totScore = s.totalScore !== undefined ? s.totalScore : (s.score * 10);
-    const pct = Math.min(100, Math.round(totScore / 100 * 100));
-    return `<tr>
-      <td>รอบที่ ${i + 1}</td>
-      <td>${new Date(s.date).toLocaleString('th-TH')}</td>
-      <td><strong>${totScore} คะแนน</strong> (${s.score}/8 ท่า)</td>
-      <td>${s.timeUsed} วินาที</td>
-      <td><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td>
-    </tr>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div class="flourish">
-      <div class="line"></div>
-      <span style="color:var(--maroon-dark); font-family:'Chonburi'">${name}</span>
-      <div class="line"></div>
+  <!-- TEACHER MODE MODALS -->
+  <!-- 1. Passcode Input Modal (Form wrapped - Passcode not displayed on screen) -->
+  <div id="modal-teacher-pass" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 420px; text-align: center;">
+      <div class="modal-header">
+        <h2>🔒 เข้าสู่โหมดครูผู้สอน</h2>
+        <button id="btn-close-pass-modal" type="button" class="btn-close">&times;</button>
+      </div>
+      <p style="font-size: 0.95rem; color: #E0D0E0; margin-bottom: 20px;">
+        กรอกรหัสผ่านเข้าสู่ระบบหลังบ้านและการจัดการภาพต้นฉบับ
+      </p>
+      
+      <form id="form-teacher-pass" onsubmit="event.preventDefault(); window.app.verifyTeacherPassword();">
+        <div class="input-group">
+          <input type="password" id="input-teacher-pass" class="input-control" placeholder="กรอกรหัสผ่าน 4 หลัก" maxlength="4" pattern="[0-9]*" inputmode="numeric" autocomplete="off" style="text-align: center; letter-spacing: 8px; font-size: 1.8rem; font-weight: 700;" />
+        </div>
+        <button type="submit" id="btn-submit-pass" class="btn-gold" style="width: 100%; justify-content: center; font-size: 1.15rem; padding: 14px; margin-top: 10px;">
+          🔑 ยืนยันรหัสผ่าน
+        </button>
+      </form>
     </div>
-    <table class="hist">
-      <thead><tr><th>รอบ</th><th>วันเวลาที่เล่นเกม</th><th>คะแนนปฏิบัติ</th><th>เวลาที่ใช้</th><th>ระดับพัฒนาการ</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-}
+  </div>
 
-/* ---------------------------------------------------------------
-   STUDENT GAME LOGIC (180s TIMER, 3s PREP DELAY, SCORING & BONUSES)
---------------------------------------------------------------- */
-let studentName = '', queue = [], results = {}, currentIdx = 0, timeLeft = GAME_SECONDS;
-let gameLoopActive = false, gameVideoEl = null, latestSegResults = null;
-let gameStartTimestamp = 0;
-let clockTimerInterval = null;
-let sendingFrames = false;
-let isMarkingCorrect = false;
+  <!-- 2. Teacher Dashboard & Analytics Backend Modal -->
+  <div id="modal-teacher-dashboard" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 900px;">
+      <div class="modal-header">
+        <h2>⚙️ ระบบหลังบ้านคุณครูนรีรัตน์ - สถิติ & จัดการภาพต้นฉบับ</h2>
+        <button id="btn-close-dashboard-modal" type="button" class="btn-close">&times;</button>
+      </div>
 
-let prepCountdown = PREP_DELAY_SECONDS;
-let prepTimerInterval = null;
+      <!-- Tab Buttons Navigation -->
+      <div class="teacher-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--thai-gold);">
+        <button type="button" id="tab-btn-images" class="teacher-tab-btn active" onclick="window.app.switchTeacherTab('images')">
+          📷 จัดการภาพท่าต้นฉบับ
+        </button>
+        <button type="button" id="tab-btn-analytics" class="teacher-tab-btn" onclick="window.app.switchTeacherTab('analytics')">
+          📊 สถิติคะแนน & พัฒนาการนักเรียน (สำหรับ PA)
+        </button>
+      </div>
 
-document.getElementById('btnStartGame').onclick = async () => {
-  const name = document.getElementById('studentName').value.trim();
-  if (!name) { alert('กรุณากรอกชื่อ-นามสกุลก่อนเริ่มเล่นเกม'); return; }
-  studentName = name;
-  unlockAudio();
-  await startGame();
-};
+      <!-- TAB 1: CUSTOM IMAGES MANAGEMENT -->
+      <div id="teacher-tab-images" class="teacher-tab-content active">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+          <p style="font-size: 0.9rem; color: #E0D0E0; margin: 0;">
+            อัปโหลดภาพถ่าย หรือภาพวาดท่าต้นฉบับของครู (ระบบบีบอัดขนาดภาพให้อัตโนมัติ)
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn-gold" style="padding: 6px 12px; font-size: 0.8rem;" onclick="window.teacherStore.exportCustomPack()">
+              📥 ส่งออกไฟล์ภาพ (JSON Pack)
+            </button>
+            <label class="btn-gold" style="padding: 6px 12px; font-size: 0.8rem; cursor: pointer;">
+              📤 นำเข้าไฟล์ภาพ
+              <input type="file" accept=".json" style="display: none;" onchange="window.app.handleTeacherImportPack(this)" />
+            </label>
+            <button type="button" class="btn-gold" style="padding: 6px 12px; font-size: 0.8rem; background: linear-gradient(135deg, #FF5252 0%, #C62828 100%); color: #FFF;" onclick="window.app.handleTeacherResetAllImages()">
+              🗑️ ล้างไฟล์ภาพทั้งหมด
+            </button>
+          </div>
+        </div>
 
-async function startGame() {
-  await loadRefs();
-  queue = POSES.map(p => p.id);
-  results = {}; queue.forEach(id => results[id] = 'pending');
-  currentIdx = 0;
-  timeLeft = GAME_SECONDS;
-  isMarkingCorrect = false;
-  renderProgressDots();
-  showScreen('screen-game');
-  
-  // 1. GUARANTEED 180s CLOCK TIMER
-  clearInterval(clockTimerInterval);
-  gameStartTimestamp = Date.now();
-  updateTimerUI();
-  
-  clockTimerInterval = setInterval(() => {
-    if (!gameLoopActive) return;
-    const elapsedSec = Math.floor((Date.now() - gameStartTimestamp) / 1000);
-    timeLeft = Math.max(0, GAME_SECONDS - elapsedSec);
-    updateTimerUI();
+        <div id="teacher-posture-list" class="teacher-posture-list">
+          <!-- Generated dynamically via app.js -->
+        </div>
+      </div>
 
-    if (timeLeft <= 0) {
-      clearInterval(clockTimerInterval);
-      finishGame();
-    }
-  }, 1000);
+      <!-- TAB 2: STUDENT ANALYTICS & PA REPORT BACKEND -->
+      <div id="teacher-tab-analytics" class="teacher-tab-content" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+          <h3 style="color: var(--thai-gold-light); font-size: 1.1rem;">📈 รายงานสถิติคะแนนและอัตราพัฒนาการเรียนรู้รายบุคคล</h3>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-gold" style="padding: 6px 14px; font-size: 0.85rem;" onclick="window.app.printAnalyticsReport()">
+              🖨️ พิมพ์รายงาน / ปริ้นท์ (Print PDF)
+            </button>
+            <button type="button" class="btn-gold" style="padding: 6px 14px; font-size: 0.85rem; background: linear-gradient(135deg, #00C853 0%, #007E33 100%); color: #FFF;" onclick="window.teacherStore.exportCSV()">
+              📥 ดาวน์โหลดไฟล์ Excel (CSV)
+            </button>
+            <button type="button" class="btn-gold" style="padding: 6px 14px; font-size: 0.85rem; background: linear-gradient(135deg, #FF5252 0%, #C62828 100%); color: #FFF;" onclick="window.app.clearStudentHistoryLogs()">
+              🗑️ ล้างประวัติสถิติ
+            </button>
+          </div>
+        </div>
 
-  // 2. START CAMERA
-  gameVideoEl = document.getElementById('gameVideo');
-  document.getElementById('gameStatus').textContent = 'กำลังเปิดกล้อง...';
-  try {
-    await startCamera(gameVideoEl);
-  } catch (e) {
-    document.getElementById('gameStatus').textContent = 'ไม่สามารถเปิดกล้องได้: ' + e.message;
-  }
+        <!-- Printable Student Analytics Table -->
+        <div id="print-area-report" class="table-responsive-box">
+          <table class="analytics-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>ชื่อ - นามสกุล นักเรียน</th>
+                <th>จำนวนครั้งที่เล่น</th>
+                <th>คะแนนครั้งแรก</th>
+                <th>คะแนนล่าสุด</th>
+                <th>คะแนนสูงสุด</th>
+                <th>พัฒนาการ (% เก่งขึ้น)</th>
+                <th>ผลการประเมิน PA</th>
+                <th>วันที่เล่นล่าสุด</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-table-body">
+              <!-- Rendered dynamically via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-  // 3. MEDIAPIPE MODEL CALLBACK
-  const model = getSegModel();
-  model.onResults((r) => {
-    latestSegResults = r;
-    document.getElementById('gameDot').classList.add('ready');
-    document.getElementById('gameStatus').textContent = '🟢 AI กำลังตรวจจับท่าทาง';
-    evaluatePoseResult(r);
-  });
+    </div>
+  </div>
 
-  gameLoopActive = true;
-  loadCurrentPoseUI();
-  startExcitingMusic();
-  
-  // 4. NON-BLOCKING CAMERA FRAME TRANSMISSION
-  sendingFrames = false;
-  sendCameraFramesLoop();
-  
-  document.getElementById('btnStopTimer').disabled = true;
-}
+  <!-- JavaScript Modules -->
+  <script src="js/audio.js"></script>
+  <script src="js/teacher-store.js"></script>
+  <script src="js/pose-detector.js"></script>
+  <script src="js/app.js"></script>
 
-function updateTimerUI() {
-  const box = document.getElementById('timerBox');
-  if (box) {
-    box.textContent = '⏱ ' + timeLeft;
-    box.classList.toggle('low', timeLeft <= 30);
-  }
-}
-
-async function sendCameraFramesLoop() {
-  if (!gameLoopActive) return;
-  if (gameVideoEl && gameVideoEl.readyState >= 2 && !sendingFrames) {
-    sendingFrames = true;
-    try {
-      await getSegModel().send({ image: gameVideoEl });
-    } catch(e){}
-    sendingFrames = false;
-  }
-  if (gameLoopActive) requestAnimationFrame(sendCameraFramesLoop);
-}
-
-// ULTRA-EASY RELAXED ARM LEVEL MATCHING EVALUATION
-function evaluatePoseResult(r) {
-  if (!gameLoopActive || !r || isMarkingCorrect) return;
-
-  const poseId = queue[currentIdx];
-  if (!poseId || results[poseId] === 'correct') return;
-  const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
-  if (!ref) return;
-
-  const w = gameVideoEl.videoWidth || 640, h = gameVideoEl.videoHeight || 480;
-  const liveGrid = maskToGrid(r.segmentationMask, w, h, true);
-  const refGrid = stringToGrid(ref.grid);
-  
-  const coverageScore = evaluatePoseAccuracy(liveGrid, refGrid);
-  
-  let displayPct = 0;
-  if (coverageScore > 0.01) {
-    // Highly forgiving mapping: 35% arm area overlap = 100% displayPct!
-    displayPct = Math.min(100, Math.round((coverageScore / 0.35) * 100));
-  }
-
-  const matchFill = document.getElementById('matchFill').firstElementChild;
-  const matchText = document.getElementById('matchText');
-
-  matchFill.style.width = displayPct + '%';
-  matchText.textContent = `ระดับแขนตรงตามเงาต้นฉบับ: ${displayPct}% (เกณฑ์ผ่าน: จัดวางแขนตรงตำแหน่ง)`;
-
-  // EASY PASSING THRESHOLD: Triggers as long as arms match the pose position (displayPct >= 45% or coverageScore >= 0.15)!
-  if (displayPct >= 45 || coverageScore >= 0.15) {
-    markCorrect(poseId);
-  }
-}
-
-const overlayImgEl = document.getElementById('gameOverlay');
-const overlayModeSelect = document.getElementById('overlayModeSelect');
-const opacitySlider = document.getElementById('opacitySlider');
-const opacityVal = document.getElementById('opacityVal');
-
-overlayModeSelect.onchange = updateOverlayStyle;
-opacitySlider.oninput = () => {
-  opacityVal.textContent = opacitySlider.value + '%';
-  updateOverlayStyle();
-};
-
-function updateOverlayStyle() {
-  const poseId = queue[currentIdx];
-  const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
-  if (!ref) return;
-  
-  const mode = overlayModeSelect.value || 'original';
-  overlayImgEl.className = 'overlay-img mode-' + mode;
-  overlayImgEl.style.opacity = opacitySlider.value / 100;
-  
-  if (mode === 'original' && ref.originalImg) {
-    overlayImgEl.src = ref.originalImg;
-  } else if (ref.thumb) {
-    overlayImgEl.src = ref.thumb;
-  } else {
-    overlayImgEl.src = ref.originalImg;
-  }
-}
-
-function loadCurrentPoseUI() {
-  const poseId = queue[currentIdx];
-  const ref = poseRefs[poseId] || DEFAULT_POSE_REFS[poseId];
-  const idxInAll = POSES.findIndex(p => p.id === poseId);
-  
-  document.getElementById('gameNum').textContent = `ข้อที่ ${idxInAll + 1} จาก 8`;
-  document.getElementById('gameName').textContent = ref ? ref.name : POSES[idxInAll].name;
-  updateOverlayStyle();
-
-  const matchFill = document.getElementById('matchFill').firstElementChild;
-  matchFill.style.width = '0%';
-  document.getElementById('matchText').textContent = 'ระดับแขนตรงตามเงาต้นฉบับ: 0%';
-  
-  isMarkingCorrect = false;
-  renderProgressDots();
-
-  // START 3-SECOND PREPARATION COUNTDOWN
-  clearInterval(prepTimerInterval);
-  prepCountdown = PREP_DELAY_SECONDS;
-  const prepBadge = document.getElementById('prepBadge');
-  const prepSec = document.getElementById('prepSec');
-  
-  prepBadge.style.display = 'flex';
-  prepSec.textContent = prepCountdown;
-
-  prepTimerInterval = setInterval(() => {
-    prepCountdown--;
-    if (prepCountdown > 0) {
-      prepSec.textContent = prepCountdown;
-    } else {
-      clearInterval(prepTimerInterval);
-      prepBadge.style.display = 'none';
-    }
-  }, 1000);
-}
-
-function renderProgressDots() {
-  const wrap = document.getElementById('progressDots');
-  wrap.innerHTML = '';
-  POSES.forEach((p, i) => {
-    const st = results[p.id] || 'pending';
-    const d = document.className = 'pdot' + (st === 'correct' ? ' correct' : st === 'skipped' ? ' skipped' : '') + (queue[currentIdx] === p.id ? ' current' : '');
-    d.textContent = st === 'correct' ? '✓' : (i + 1);
-    wrap.appendChild(d);
-  });
-}
-
-function markCorrect(poseId) {
-  if (isMarkingCorrect) return;
-  isMarkingCorrect = true;
-  results[poseId] = 'correct';
-  
-  const matchFill = document.getElementById('matchFill').firstElementChild;
-  matchFill.style.width = '100%';
-  document.getElementById('matchText').textContent = 'ระดับแขนตรงตามเงาต้นฉบับ: 100% (ถูกต้อง!)';
-
-  playBellChime(); // Bright Bell Chime Sound Effect Notification ✨🔔!
-  
-  const cm = document.getElementById('checkmark');
-  cm.classList.add('show');
-  
-  setTimeout(() => {
-    cm.classList.remove('show');
-    advance(); // Automatic transition to Pose 2, Pose 3, etc.!
-  }, 600);
-}
-
-function advance() {
-  queue.splice(currentIdx, 1);
-  if (queue.length === 0) {
-    finishGame();
-    return;
-  }
-  if (currentIdx >= queue.length) currentIdx = 0;
-  loadCurrentPoseUI(); 
-  document.getElementById('btnStopTimer').disabled = !Object.values(results).every(v => v === 'correct');
-}
-
-document.getElementById('btnSkip').onclick = () => {
-  const poseId = queue[currentIdx];
-  if (!poseId) return;
-  if (results[poseId] !== 'correct') results[poseId] = 'skipped';
-  playSkipSound();
-  queue.push(queue.splice(currentIdx, 1)[0]);
-  if (currentIdx >= queue.length) currentIdx = 0;
-  loadCurrentPoseUI();
-};
-
-document.getElementById('btnStopTimer').onclick = () => finishGame();
-
-async function finishGame() {
-  if (!gameLoopActive) return;
-  gameLoopActive = false;
-  clearInterval(clockTimerInterval);
-  clearInterval(prepTimerInterval);
-  stopExcitingMusic();
-  stopStream(gameVideoEl);
-
-  const correctCount = Object.values(results).filter(v => v === 'correct').length;
-  const timeUsed = GAME_SECONDS - Math.max(0, timeLeft);
-  
-  // SCORING SYSTEM: 10 Points per correct pose (max 80 base points)
-  const basePoints = correctCount * 10;
-  let bonusPoints = 0;
-
-  // TIME BONUS SYSTEM (For 8/8 full completion)
-  if (correctCount === Object.keys(results).length) {
-    if (timeUsed <= 60) {
-      bonusPoints = 20; // +20 Points Bonus within 60s
-    } else if (timeUsed <= 120) {
-      bonusPoints = 10; // +10 Points Bonus within 120s
-    }
-  }
-
-  const totalScore = basePoints + bonusPoints;
-
-  // PLAY TRIUMPHANT VICTORY FANFARE MELODY ✨🎉🎺
-  playVictoryFanfare();
-
-  // DISPLAY POPUP SCORE NOTIFICATION
-  document.getElementById('resTotalPoints').textContent = `${totalScore} คะแนน`;
-  document.getElementById('resBasePoints').textContent = `คะแนนท่าทาง: ${basePoints} คะแนน (${correctCount}/8 ท่า)`;
-  
-  const bonusBadge = document.getElementById('resBonusBadge');
-  if (bonusPoints > 0) {
-    bonusBadge.style.display = 'inline-block';
-    bonusBadge.textContent = `⚡ โบนัสความเร็วพิเศษ: +${bonusPoints} คะแนน!`;
-  } else {
-    bonusBadge.style.display = 'none';
-  }
-
-  document.getElementById('resTime').textContent = `เวลาที่ใช้รวม: ${timeUsed} วินาที`;
-
-  await appendStudentSession(studentName, {
-    date: new Date().toISOString(),
-    score: correctCount,
-    total: Object.keys(results).length,
-    basePoints,
-    bonusPoints,
-    totalScore,
-    timeUsed
-  });
-
-  showScreen('screen-result');
-}
-
-document.getElementById('btnReplay').onclick = async () => { unlockAudio(); await startGame(); };
-
-/* ---------------------------------------------------------------
-   INIT ON LOAD
---------------------------------------------------------------- */
-(async () => {
-  await loadRefs();
-})();
-</script>
 </body>
 </html>
