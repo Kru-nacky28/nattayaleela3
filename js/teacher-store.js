@@ -84,7 +84,11 @@ class TeacherStore {
     this.STORAGE_KEY_IMAGES = 'natayasapt_custom_images';
     this.STORAGE_KEY_SETTINGS = 'natayasapt_settings';
     this.STORAGE_KEY_HISTORY = 'natayasapt_student_history';
+    this.STORAGE_KEY_QUIZ = 'natayasapt_quiz_results';
+    this.STORAGE_KEY_CLOUD_URL = 'natayasapt_cloud_url';
     this.TEACHER_PASSCODE = '2569';
+    // Public Cloud Analytics Backup Endpoint for seamless multi-device centralization
+    this.DEFAULT_CLOUD_ENDPOINT = 'https://jsonbin.org/natayasapt/scores';
   }
 
   // Verify Passcode
@@ -92,7 +96,7 @@ class TeacherStore {
     return String(inputCode).trim() === this.TEACHER_PASSCODE;
   }
 
-  // --- Student History & Analytics Store (ระบบหลังบ้าน) ---
+  // --- Student History & Analytics Store (ระบบหลังบ้านส่วนกลาง) ---
 
   getHistoryLogs() {
     try {
@@ -103,31 +107,229 @@ class TeacherStore {
     }
   }
 
-  saveStudentLog(name, totalScore, baseScore, bonusScore, completedCount, timeUsed) {
+  // --- Pre-test / Post-test Quiz Store ---
+  getQuizResults() {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY_QUIZ);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveQuizResult(studentName, type, score, totalQuestions = 5, answers = []) {
+    const newQuizEntry = {
+      id: Date.now(),
+      name: studentName.trim(),
+      type, // 'pre' หรือ 'post'
+      score,
+      totalQuestions,
+      answers,
+      logCategory: 'QUIZ',
+      timestamp: new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }),
+      device: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'PC'
+    };
+
+    try {
+      const quizLogs = this.getQuizResults();
+      quizLogs.push(newQuizEntry);
+      localStorage.setItem(this.STORAGE_KEY_QUIZ, JSON.stringify(quizLogs));
+    } catch (e) {
+      console.error('Failed quiz log save', e);
+    }
+
+    // Cloud Sync Immediate Push
+    try {
+      this.sendCloudStudentLog(newQuizEntry);
+    } catch (err) {
+      console.warn('Cloud sync offline fallback for quiz', err);
+    }
+
+    return newQuizEntry;
+  }
+
+  getQuizResultForStudent(studentName) {
+    const sName = studentName.trim();
+    const logs = this.getQuizResults().filter(q => q.name === sName);
+    const preLog = logs.filter(q => q.type === 'pre').pop();
+    const postLog = logs.filter(q => q.type === 'post').pop();
+    return {
+      preScore: preLog ? preLog.score : null,
+      postScore: postLog ? postLog.score : null,
+      preDate: preLog ? preLog.timestamp : '',
+      postDate: postLog ? postLog.timestamp : ''
+    };
+  }
+
+  getCloudUrl() {
+    const userSaved = localStorage.getItem(this.STORAGE_KEY_CLOUD_URL);
+    if (userSaved && userSaved.trim()) return userSaved.trim();
+    if (typeof window !== 'undefined' && window.DEFAULT_CLOUD_URL && window.DEFAULT_CLOUD_URL.trim()) {
+      return window.DEFAULT_CLOUD_URL.trim();
+    }
+    return 'https://script.google.com/macros/s/AKfycbwiGDYpHP-31I68vTwq03VMeX-6y89XocONreRGWPOn5inBEWoMnHlKbUolLt_r4gdm/exec';
+  }
+
+  saveCloudUrl(url) {
+    localStorage.setItem(this.STORAGE_KEY_CLOUD_URL, url.trim());
+  }
+
+  async saveStudentLog(name, totalScore, baseScore, bonusScore, completedCount, timeUsed) {
+    const newLog = {
+      id: Date.now(),
+      name: name.trim(),
+      totalScore,
+      baseScore,
+      bonusScore,
+      completedCount,
+      timeUsed,
+      logCategory: 'GAME',
+      timestamp: new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }),
+      device: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'PC'
+    };
+
+    // 1. Save locally in device storage
     try {
       const logs = this.getHistoryLogs();
-      const newLog = {
-        id: Date.now(),
-        name: name.trim(),
-        totalScore,
-        baseScore,
-        bonusScore,
-        completedCount,
-        timeUsed,
-        timestamp: new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })
-      };
       logs.push(newLog);
       localStorage.setItem(this.STORAGE_KEY_HISTORY, JSON.stringify(logs));
-      return newLog;
     } catch (e) {
-      console.error('Failed to save student log', e);
-      return null;
+      console.error('Failed local log save', e);
     }
+
+    // 2. Sync to Central Online Cloud Analytics Server
+    try {
+      await this.sendCloudStudentLog(newLog);
+    } catch (err) {
+      console.warn('Cloud sync offline fallback', err);
+    }
+
+    return newLog;
+  }
+
+  // Send Student Log to Online Cloud Database / Google Sheet Endpoint (รองรับ 100% บน iPad, มือถือ iOS/Android และโน้ตบุ๊ก)
+  async sendCloudStudentLog(logEntry) {
+    const cloudUrl = this.getCloudUrl();
+    if (!cloudUrl) return;
+
+    const payload = JSON.stringify(logEntry);
+
+    // 1. ลองส่งผ่าน navigator.sendBeacon หากเบราว์เซอร์มือถือรองรับ
+    if (navigator.sendBeacon) {
+      try {
+        const blob = new Blob([payload], { type: 'text/plain;charset=UTF-8' });
+        const success = navigator.sendBeacon(cloudUrl, blob);
+        if (success) return;
+      } catch (e) {
+        // Fallback to fetch below
+      }
+    }
+
+    // 2. ส่งผ่าน fetch ด้วย mode: 'no-cors' และ text/plain ป้องกัน iOS Safari บล็อก POST
+    try {
+      await fetch(cloudUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        mode: 'no-cors',
+        body: payload
+      });
+    } catch (e) {
+      console.warn('Failed cloud post on mobile/PC', e);
+    }
+  }
+
+  // Fetch & Synchronize Centralized Logs across Notebook, iPad, Mobile Phone (Brave & Safari JSONP Compatible)
+  async fetchCloudStudentLogs() {
+    const cloudUrl = this.getCloudUrl();
+    if (!cloudUrl) return;
+
+    // Helper process to merge raw data into local storage
+    const processData = (cloudData) => {
+      if (!Array.isArray(cloudData) || cloudData.length === 0) return;
+
+      const localGameLogs = this.getHistoryLogs();
+      const localQuizLogs = this.getQuizResults();
+
+      const gameIds = new Set(localGameLogs.map(l => String(l.id)));
+      const quizIds = new Set(localQuizLogs.map(q => String(q.id)));
+
+      cloudData.forEach(item => {
+        let log = item;
+
+        // Handle Apps Script 2D array row or JSON string column fallback
+        if (Array.isArray(item)) {
+          try {
+            const jsonStr = item[item.length - 1];
+            if (typeof jsonStr === 'string' && jsonStr.startsWith('{')) {
+              log = JSON.parse(jsonStr);
+            }
+          } catch (err) {
+            log = null;
+          }
+        }
+
+        if (!log || !log.id) return;
+
+        const strId = String(log.id);
+
+        // Separate into Quiz vs Game Logs
+        if (log.logCategory === 'QUIZ' || log.type === 'pre' || log.type === 'post') {
+          if (!quizIds.has(strId)) {
+            localQuizLogs.push(log);
+            quizIds.add(strId);
+          }
+        } else if (log.logCategory === 'GAME' || log.totalScore !== undefined) {
+          if (!gameIds.has(strId)) {
+            localGameLogs.push(log);
+            gameIds.add(strId);
+          }
+        }
+      });
+
+      localStorage.setItem(this.STORAGE_KEY_HISTORY, JSON.stringify(localGameLogs));
+      localStorage.setItem(this.STORAGE_KEY_QUIZ, JSON.stringify(localQuizLogs));
+    };
+
+    // Method 1: Standard fetch
+    try {
+      const res = await fetch(cloudUrl, { method: 'GET', cache: 'no-cache' });
+      if (res.ok) {
+        const cloudData = await res.json();
+        processData(cloudData);
+        return;
+      }
+    } catch (e) {
+      console.warn('Fetch blocked by browser shields, trying JSONP fallback...', e);
+    }
+
+    // Method 2: JSONP Fallback for Brave Browser Shields & iOS Safari Strict CORS
+    return new Promise((resolve) => {
+      const callbackName = 'cb_cloud_sync_' + Date.now();
+      window[callbackName] = (data) => {
+        try {
+          processData(data);
+        } catch (err) {}
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+        resolve();
+      };
+
+      const script = document.createElement('script');
+      const sep = cloudUrl.includes('?') ? '&' : '?';
+      script.src = `${cloudUrl}${sep}callback=${callbackName}&_t=${Date.now()}`;
+      script.onerror = () => {
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+        resolve();
+      };
+      document.body.appendChild(script);
+    });
   }
 
   clearHistory() {
     try {
       localStorage.removeItem(this.STORAGE_KEY_HISTORY);
+      localStorage.removeItem(this.STORAGE_KEY_QUIZ);
       return true;
     } catch (e) {
       return false;
@@ -135,83 +337,160 @@ class TeacherStore {
   }
 
   /**
-   * Group logs by student name and calculate summary statistics & % Improvement
-   * พัฒนาการ = ((คะแนนครั้งล่าสุด - คะแนนครั้งแรก) / คะแนนครั้งแรก) * 100
+   * 1. สถิติแบบทดสอบทฤษฎี (ก่อนเรียน - หลังเรียน) แยกอิสระ
    */
-  getStudentSummaryStats() {
-    const logs = this.getHistoryLogs();
-    const studentMap = {};
+  getQuizSummaryStats() {
+    const quizLogs = this.getQuizResults();
+    const studentNames = [...new Set(quizLogs.map(q => q.name))];
+    const list = [];
 
-    logs.forEach(log => {
-      if (!studentMap[log.name]) {
-        studentMap[log.name] = [];
+    studentNames.forEach(name => {
+      const pQuiz = quizLogs.filter(q => q.name === name);
+      const preLog = pQuiz.filter(q => q.type === 'pre').pop();
+      const postLog = pQuiz.filter(q => q.type === 'post').pop();
+
+      const preScore = preLog ? preLog.score : '-';
+      const postScore = postLog ? postLog.score : '-';
+
+      let improvementText = '-';
+      let improvementVal = 0;
+
+      if (preLog && postLog) {
+        const diff = postLog.score - preLog.score;
+        const pct = Math.round((diff / 5) * 100);
+        improvementVal = pct;
+        improvementText = pct >= 0 ? `+${pct}% (${diff >= 0 ? '+' : ''}${diff})` : `${pct}% (${diff})`;
+      } else if (postLog) {
+        improvementText = `${postLog.score}/5`;
       }
-      studentMap[log.name].push(log);
+
+      let result = 'ผ่านเกณฑ์';
+      if (postLog && postLog.score >= 4) result = 'ดีเยี่ยม (100%)';
+      else if (postLog && postLog.score >= 3) result = 'ดี (ผ่านเกณฑ์)';
+      else if (postLog) result = 'ควรปรับปรุง';
+      else result = 'กำลังเรียนรู้';
+
+      const lastDate = postLog ? postLog.timestamp : (preLog ? preLog.timestamp : '-');
+
+      list.push({
+        name,
+        preScore,
+        postScore,
+        improvementText,
+        improvementVal,
+        result,
+        lastDate
+      });
     });
 
-    const summaryList = [];
+    return list;
+  }
 
-    Object.keys(studentMap).forEach(name => {
-      const pLogs = studentMap[name];
+  /**
+   * 2. สถิติการปฏิบัติเกม AI (AI Motion Detection Game) แยกอิสระ
+   */
+  getGameSummaryStats() {
+    const gameLogs = this.getHistoryLogs();
+    const studentNames = [...new Set(gameLogs.map(l => l.name))];
+    const list = [];
+
+    studentNames.forEach(name => {
+      const pLogs = gameLogs.filter(l => l.name === name);
       const playCount = pLogs.length;
       const firstLog = pLogs[0];
       const latestLog = pLogs[pLogs.length - 1];
       const bestScore = Math.max(...pLogs.map(l => l.totalScore));
-
-      const firstScore = firstLog.totalScore;
       const latestScore = latestLog.totalScore;
 
-      let improvement = 0;
-      if (firstScore > 0) {
-        improvement = Math.round(((latestScore - firstScore) / firstScore) * 100);
-      } else if (latestScore > 0) {
-        improvement = 100;
+      let gameImprovement = 0;
+      if (firstLog && firstLog.totalScore > 0 && latestLog) {
+        gameImprovement = Math.round(((latestLog.totalScore - firstLog.totalScore) / firstLog.totalScore) * 100);
+      } else if (latestLog && latestLog.totalScore > 0) {
+        gameImprovement = 100;
       }
 
-      let paResult = 'ผ่านเกณฑ์ PA';
-      if (latestScore >= 80) paResult = 'ดีเยี่ยม (100%)';
-      else if (latestScore >= 50) paResult = 'ดี (ผ่าน)';
-      else paResult = 'ควรปรับปรุง';
+      let result = 'ผ่านเกณฑ์การประเมิน';
+      if (latestScore >= 80) result = 'ดีเยี่ยม (100%)';
+      else if (latestScore >= 50) result = 'ดี (ผ่านเกณฑ์)';
+      else result = 'ควรปรับปรุง';
 
-      summaryList.push({
+      list.push({
         name,
         playCount,
-        firstScore,
+        firstScore: firstLog.totalScore,
         latestScore,
         bestScore,
-        improvement,
-        paResult,
-        lastPlayDate: latestLog.timestamp
+        gameImprovement,
+        result,
+        lastDate: latestLog.timestamp
       });
     });
 
-    return summaryList;
+    return list;
   }
 
-  // Export CSV File for Excel
-  exportCSV() {
-    const stats = this.getStudentSummaryStats();
+  // Combined Summary Stats for Backward Compatibility
+  getStudentSummaryStats() {
+    return {
+      quizStats: this.getQuizSummaryStats(),
+      gameStats: this.getGameSummaryStats()
+    };
+  }
+
+  // Export Quiz CSV File
+  exportQuizCSV() {
+    const stats = this.getQuizSummaryStats();
     if (stats.length === 0) {
-      alert('ยังไม่มีข้อมูลสถิตินักเรียนให้ส่งออก');
+      alert('ยังไม่มีข้อมูลสถิติแบบทดสอบก่อน-หลังเรียนให้ส่งออก');
       return;
     }
 
-    let csvContent = '\uFEFF'; // UTF-8 BOM for Excel Thai language compatibility
-    csvContent += 'ชื่อ - นามสกุล นักเรียน,จำนวนครั้งที่เล่น,คะแนนครั้งแรก,คะแนนครั้งล่าสุด,คะแนนสูงสุด,พัฒนาการ (%),ผลการประเมิน PA,วันที่เล่นล่าสุด\n';
+    let csvContent = '\uFEFF';
+    csvContent += 'ชื่อ - นามสกุล นักเรียน,คะแนนก่อนเรียน (Pre-test /5),คะแนนหลังเรียน (Post-test /5),พัฒนาการทฤษฎี (%),ผลการประเมิน\n';
 
     stats.forEach(s => {
-      const impText = s.improvement >= 0 ? `+${s.improvement}%` : `${s.improvement}%`;
-      csvContent += `"${s.name}",${s.playCount},${s.firstScore},${s.latestScore},${s.bestScore},"${impText}","${s.paResult}","${s.lastPlayDate}"\n`;
+      csvContent += `"${s.name}","${s.preScore}","${s.postScore}","${s.improvementText}","${s.result}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `รายงานสถิตินักเรียน_นาฏยศัพท์_PA_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute('download', `รายงานสถิติแบบทดสอบทฤษฎี_ก่อนหลังเรียน_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  // Export AI Game Practice CSV File
+  exportGameCSV() {
+    const stats = this.getGameSummaryStats();
+    if (stats.length === 0) {
+      alert('ยังไม่มีข้อมูลสถิติการเล่นเกม AI ให้ส่งออก');
+      return;
+    }
+
+    let csvContent = '\uFEFF';
+    csvContent += 'ชื่อ - นามสกุล นักเรียน,จำนวนครั้งที่เล่น,คะแนนครั้งแรก,คะแนนล่าสุด,คะแนนสูงสุด,พัฒนาการปฏิบัติ (%),ผลการประเมิน\n';
+
+    stats.forEach(s => {
+      const impText = s.gameImprovement >= 0 ? `+${s.gameImprovement}%` : `${s.gameImprovement}%`;
+      csvContent += `"${s.name}",${s.playCount},${s.firstScore},${s.latestScore},${s.bestScore},"${impText}","${s.result}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `รายงานสถิติการปฏิบัติเกมAI_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  exportCSV() {
+    this.exportQuizCSV();
+    setTimeout(() => this.exportGameCSV(), 500);
   }
 
   // Export Custom Images JSON Data Pack (สำหรับนำไปใช้งานข้ามเครื่อง/GitHub)
@@ -258,6 +537,25 @@ class TeacherStore {
   getPostureById(id) {
     const postures = this.getPostures();
     return postures.find(p => p.id === Number(id)) || postures[0];
+  }
+
+  // Automatically fetch shared custom images from server repository (data/custom-images.json)
+  async loadServerCustomImages() {
+    try {
+      const res = await fetch('data/custom-images.json');
+      if (res.ok) {
+        const serverData = await res.json();
+        if (serverData && typeof serverData === 'object' && Object.keys(serverData).length > 0) {
+          const current = this.getCustomImages();
+          const merged = { ...serverData, ...current };
+          localStorage.setItem(this.STORAGE_KEY_IMAGES, JSON.stringify(merged));
+          return true;
+        }
+      }
+    } catch (e) {
+      console.log('No server custom images pack found or fetch error', e);
+    }
+    return false;
   }
 
   // Get custom images stored in LocalStorage

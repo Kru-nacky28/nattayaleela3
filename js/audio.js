@@ -255,6 +255,51 @@ class AudioEngine {
       this.bgmTimer = null;
     }
   }
+
+  // --- Quiz Exciting Background Music (เสียงดนตรีตื่นเต้นระดับเสียงเบากว่าเสียงอ่าน AI) ---
+  startQuizBGM() {
+    if (this.isMuted || this.quizBgmPlaying) return;
+    this.init();
+    this.quizBgmPlaying = true;
+    this.quizBgmStep = 0;
+
+    const tensionNotes = [392.00, 440.00, 493.88, 523.25, 659.25]; // G4, A4, B4, C5, E5
+    const stepInterval = 160; // จังหวะตื่นเต้น (~187 BPM)
+
+    this.quizBgmTimer = setInterval(() => {
+      if (!this.quizBgmPlaying || this.isMuted) return;
+      const now = this.ctx.currentTime;
+
+      // Exciting Rhythm Beat (ปรับเพิ่มระดับเสียงเป็น 0.060 ให้ดนตรีดังตื่นเต้นเร้าใจชัดเจนยิ่งขึ้น)
+      if (this.quizBgmStep % 2 === 0) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        const freq = tensionNotes[this.quizBgmStep % tensionNotes.length];
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.060, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      }
+
+      this.quizBgmStep = (this.quizBgmStep + 1) % 16;
+    }, stepInterval);
+  }
+
+  stopQuizBGM() {
+    this.quizBgmPlaying = false;
+    if (this.quizBgmTimer) {
+      clearInterval(this.quizBgmTimer);
+      this.quizBgmTimer = null;
+    }
+  }
 }
 
 window.soundEngine = new AudioEngine();
+
